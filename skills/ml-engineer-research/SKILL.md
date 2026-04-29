@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-research
-description: Researches techniques and best practices by searching the web and reading what's relevant, then internalizing the evidence to inform downstream decisions. Use across any quantitative domain — modeling, statistics, forecasting, evaluation, backtesting, experiment design, time-series analysis — when facing an unfamiliar problem, choosing between approaches, picking starting points, or diagnosing surprising results. Does not produce a citation list; produces understanding.
+description: Use when facing an unfamiliar problem class, choosing between methods or metrics, picking starting parameters, diagnosing implausible results, or when the user explicitly asks to "look up", "research", "check the literature", or "find recent work on" a topic. Do NOT use for basic questions with known answers or topics already covered in the current session.
 license: MIT
 metadata:
   source: ml-engineer

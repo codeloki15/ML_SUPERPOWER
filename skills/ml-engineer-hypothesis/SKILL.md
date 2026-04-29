@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-hypothesis
-description: Generates testable hypotheses for any quantitative problem with mechanism, prediction, experiment design, and falsification criteria. Use across domains — ML, finance, biology, social science, ops, healthcare — when the user asks to "propose hypotheses", "design experiments", "what could explain this result", "what could be tested next", or after research has been done and the user wants to extend findings. Refuses to fabricate evidence.
+description: Use when the user asks to "propose hypotheses", "design experiments", "what could explain this result", "what could be tested next", or when research returned low confidence and multiple options worth testing exist. Do NOT use to generate hypotheses without context — ask for data or prior results first.
 license: MIT
 metadata:
   source: ml-engineer

@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-plan
-description: Produces a structured checkbox TODO plan for any quantitative task before any code is written. Use when the user asks to "analyze", "explore", "model", "forecast", "train", "backtest", "simulate", "evaluate", "predict", "visualize", "summarize", or "investigate" data, especially with a .csv, .xlsx, .json, or .parquet file. Works across domains — ML, finance, healthcare, retail, drug discovery, ops research. Do NOT use for one-line code edits, general programming questions, or non-data tasks.
+description: Use when the user asks to "analyze", "explore", "model", "forecast", "train", "backtest", "simulate", "evaluate", "predict", "visualize", "summarize", or "investigate" data — especially with a .csv, .xlsx, .json, or .parquet file. Do NOT use for one-line code edits, general programming questions, or non-data tasks.
 license: MIT
 metadata:
   source: ml-engineer

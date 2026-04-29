@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-verify
-description: Verifies that a completed step actually did what was claimed before reporting completion. Use after every executed step and especially before declaring a task complete. Required by the orchestrator — never skip. Works across any quantitative domain — catches silent failures, wrong-shape outputs, leaked data, look-ahead, off-by-one joins, unit mismatches, and inverted metrics.
+description: Use after every successful script execution, before declaring any step or task complete, and whenever a result looks "too good" or "too bad" to be true. Do NOT skip — completion claims without fresh verification evidence are forbidden.
 license: MIT
 metadata:
   source: ml-engineer
@@ -9,95 +9,85 @@ metadata:
 
 # Verify Before Completion
 
-Trust nothing. Re-check that the step did what was claimed. This skill is invoked after every executed step and is mandatory before the orchestrator says "done".
+## Iron Law
 
-Domain-agnostic. The same verification discipline catches a leaked target in an ML model, a look-ahead feature in a backtest, a forgotten timezone in a logistics forecast, and a unit mismatch in a clinical analysis.
+> **No completion claim without fresh verification evidence. Ever.**
 
-## When to invoke
+This is non-negotiable. The orchestrator does not say "done", "verified", "trained", "loaded", "computed", or any synonym until this skill has run a separate check and returned `verified`.
 
-- After `ml-engineer-execute` returns `exit 0` and the orchestrator is about to move to the next step.
-- Before reporting overall task completion to the user.
-- When a result looks "too good" or "too bad" to be true.
+A script exiting with code 0 is **not** verification. A printed metric is **not** verification. A saved chart file is **not** verification. The only thing that counts is fresh output from a check the orchestrator did **not** run as part of the original step.
 
-## Universal failure patterns to check
+## Claim / Requires / Not Sufficient
 
-These bugs appear in every quantitative discipline and are the most common silent failures. Always consider them, regardless of domain:
+For each common claim type, the table fixes what counts as evidence and what doesn't:
 
-| Pattern | What it looks like | Cheap check |
+| Claim | Requires | Not Sufficient |
 |---|---|---|
-| **Silent NaN propagation** | Aggregate has fewer rows than expected, or means look "round" | `df.isna().sum()`, row count before/after |
-| **Look-ahead / leakage** | Metric is implausibly good | Inspect features for any column derived from the outcome or future timestamps |
-| **Wrong join cardinality** | Row count multiplied or shrunk after a merge | Compare `len()` before and after, check uniqueness of join keys |
-| **Unit / scale mismatch** | Numbers are ~1000x off | Print min/max of key columns, sanity-check units |
-| **Timezone or off-by-one in time** | First/last day looks weird, or weekday distributions are skewed | Print min/max timestamp, weekday histogram |
-| **Inverted sign / metric** | Metric is the right magnitude but wrong direction | Check 2-3 representative rows by hand |
-| **Sampling bias** | Validation/holdout overlaps with training | Print intersection of IDs / timestamps between splits |
-| **Distribution shift between splits** | Train and test have visibly different distributions | Print mean/std/quantiles per split for key columns |
-| **Aggregation double-counting** | Totals don't match raw sum | Compare summed total to a known total |
-| **Encoding leakage** | Group-level statistics computed on full data, then used per-row | Confirm any group-encoded feature was fit only on training data |
+| "Loaded N rows / M cols" | Re-read first 5 rows + print shape from a separate read | The original load script's stdout |
+| "Cleaned / dropped duplicates" | `df.duplicated().sum() == 0` printed by a fresh script | "duplicates removed" message from the cleaning step |
+| "Filled missing values" | `df.isna().sum()` per column == 0, fresh | The filler step said it filled them |
+| "Joined / merged" | Row count before & after, uniqueness of join key, 3 spot-checked rows | "merge complete" with a row count |
+| "Trained model" | Re-predict on held-out set, recompute the headline metric, confirm match | Loss curve / training log |
+| "Model achieves <metric=X>" | Recomputed metric on the **held-out** set + a sanity check (confusion matrix, residual plot, or per-class breakdown) | The original eval call's printout |
+| "No leakage" | Feature-target correlation scan + feature importance audit + confirmation that splits preceded preprocessing | "I split before fitting" in the code comments |
+| "Backtest Sharpe = X" | Re-run with the **same** seed and confirm; verify transaction costs included; confirm walk-forward not k-fold | The backtest function's return value |
+| "Forecast generated" | Confirm horizon, plausible bounds, model wasn't fit on the forecast period | The forecast file exists |
+| "Chart saved" | File exists AND non-empty AND 2-3 underlying values cross-checked against the visual | `plt.savefig()` was called |
+| "Statistical test significant" | Re-run on a permuted/shuffled label and confirm it's non-significant; check sample size and assumptions | A small p-value |
 
-The orchestrator should pick checks that match the step's claim, not run all of them.
+If the current step's claim isn't in the table, infer the analogous row. The pattern is always: **a separate check via a different code path that could falsify the claim**.
 
-## Claim-type → checks
+## Universal failure patterns to scan for
 
-### "Loaded N rows / M columns"
-- Re-read the first 5 rows; confirm shape matches the claim.
-- Spot-check: does column 1 actually contain what the user said it contains?
-- Are there NaN/inf values that the prior step silently coerced?
+Always consider these when deciding what to verify, regardless of the specific claim:
 
-### "Cleaned / transformed / normalized"
-- Run the inverse check: `df.duplicated().sum() == 0`, `df.isna().sum() == 0`, normalized columns have mean ≈ 0 and std ≈ 1, etc.
-- Compare row count before and after — did we lose more data than expected?
+| Pattern | Symptom | Cheap check |
+|---|---|---|
+| Silent NaN propagation | Aggregates have fewer rows than expected | `df.isna().sum()`, row count before/after |
+| Look-ahead / leakage | Metric is implausibly good | Inspect features for any column derived from the target or future timestamps |
+| Wrong join cardinality | Row count multiplied or shrunk after merge | Compare `len()` before/after, check uniqueness of join keys |
+| Unit / scale mismatch | Numbers are ~1000× off | Print min/max of key columns, sanity-check units |
+| Timezone / off-by-one | First/last day looks weird, weekday distribution skewed | Print min/max timestamp, weekday histogram |
+| Inverted sign / metric | Right magnitude, wrong direction | Hand-check 2-3 representative rows |
+| Sampling bias | Validation overlaps with training | Print intersection of IDs / timestamps between splits |
+| Distribution shift between splits | Train / test visibly different | Print mean/std/quantiles per split for key columns |
+| Aggregation double-counting | Totals don't match raw sum | Compare summed total to a known total |
+| Encoding leakage | Group-level stats fit on full data, used per-row | Confirm any group-encoded feature was fit only on training split |
 
-### "Joined / merged / aggregated"
-- Row count before and after, with expected ratio.
-- Uniqueness of join keys.
-- Spot-check 3 rows of the joined result against the source tables.
+## Rationalizations to reject
 
-### "Computed feature / metric / score"
-- Print the new column alongside its source columns for 5 rows.
-- Sanity-check value range, dtype, and whether any value lies outside a plausible domain (negative ages, returns > 100%, probabilities > 1).
+When tempted to skip verification, the following thoughts are **all wrong**. Reject them:
 
-### "Trained / fit a model / strategy"
-- Re-predict on the held-out set, recompute the metric, confirm it matches the claim.
-- **Leakage check:** any feature with implausibly high importance? Any feature derived from the outcome or from future data?
-- **Split integrity:** confirm train/val/test were separated *before* any preprocessing that uses outcome statistics (target encoding, scaling fit on full data, group statistics).
-- **Walk-forward / temporal split** for time-indexed data: confirm no future leakage into the training window.
-
-### "Evaluated / scored / benchmarked"
-- For classification-like outcomes: confusion matrix, not just headline metric. Per-class precision/recall when classes are imbalanced.
-- For regression-like outcomes: residual plot or distribution; check for systematic bias across subgroups.
-- For ranking outcomes: top-K precision, not just AUC.
-- For time-series forecasting: error by horizon, not just average; check if errors are autocorrelated (a sign of model misspec).
-- For backtests: confirm transaction costs included, no survivorship bias, walk-forward (not k-fold) CV.
-- Confirm the metric was computed on a held-out / out-of-sample set, not the training set.
-
-### "Generated chart / figure"
-- Confirm the file exists and is non-empty (`os.path.getsize > 1024`).
-- The chart should reflect the actual data — print 2-3 cells / values from the underlying data and confirm they're consistent with what the figure shows.
-
-### "Forecasted / projected / simulated"
-- Confirm forecast horizon is correct.
-- Check that the forecast doesn't extrapolate beyond plausible bounds.
-- Confirm the model wasn't fit on the period it's now forecasting.
+| Rationalization | Why it's wrong |
+|---|---|
+| "The script exited cleanly, it's fine" | Silent failures exit 0 every day |
+| "The metric printed by the script is the metric" | The script could be measuring the wrong thing |
+| "The chart got saved, so the chart is right" | A blank or wrong chart also gets saved |
+| "It's just a CSV load, no need to verify" | Wrong file, wrong columns, wrong dtypes — all common |
+| "I already ran this kind of thing before" | Past correctness doesn't transfer to new data |
+| "Verification will take too long" | If verification is expensive, the original step is suspect — investigate |
+| "The user is in a hurry" | A wrong answer is slower than a right one |
+| "I'm pretty confident" | Confidence is not evidence |
 
 ## Process
 
 ### Step 1 — Read the step's output
 
-What was the executed script's stdout? What did it claim?
+What did the script claim? Match it to a row in the Claim/Requires table.
 
-### Step 2 — Pick the verification(s)
+### Step 2 — Pick the verification
 
-Based on the claim type(s), pick 1-2 cheap checks from the tables above. Always also consider the universal failure patterns — at least one should be checked when the step transforms or merges data.
+From the Requires column. Add at least one universal-failure-pattern check if the step transformed, joined, or modeled.
 
-### Step 3 — Run a verification script
+### Step 3 — Write a separate verification script
 
-Write a small Python script (`<workdir>/verify_step_<N>.py`) that runs the chosen checks. Use the existing `ml-engineer-write-code` skill's output rules.
+Create `<workdir>/verify_step_<N>.py`. **Different code path** from the original — re-load from disk, recompute via different functions, hand-check sample rows. Never just re-run the original.
 
-Run it via `ml-engineer-execute`.
+### Step 4 — Execute via `ml-engineer-execute`
 
-### Step 4 — Report
+Capture exit code and output.
+
+### Step 5 — Report
 
 Output exactly this format:
 
@@ -106,6 +96,9 @@ Output exactly this format:
 
 ### Claim
 <what the step claimed>
+
+### Required evidence
+<from the Claim/Requires table>
 
 ### Checks run
 - <check 1>: <pass | fail | mismatch>
@@ -118,32 +111,25 @@ Output exactly this format:
 <one sentence — anything the user should know before we proceed>
 ```
 
-### Step 5 — Branch
+### Step 6 — Branch
 
 - **verified** → orchestrator continues to next step.
-- **suspect** → tell the user what's odd, ask whether to proceed or investigate.
-- **failed** → hand back to `ml-engineer-debug` with the verification output as evidence.
+- **suspect** → surface to user with the mismatch; wait for direction.
+- **failed** → hand off to `ml-engineer-debug` with the verification output as evidence.
 
 ## Hard rules
 
-- **Never trust headline metrics.** A 99% accuracy / 3.0 Sharpe / 0.99 R² claim without supporting checks is `suspect` by default.
-- **Never accept "no errors" as verification.** A script can exit 0 and still produce wrong output.
-- **Always check for leakage / look-ahead** when verifying any predictive or evaluative step. This is the #1 silent failure across every quantitative domain.
-- **Always re-read the file** when verifying loading. A script that prints `(1000, 50)` may have actually loaded `(10, 5)` due to a `nrows=` left in from debugging.
-- Verification scripts must be cheap (≤ 30 seconds). If the check would take longer than the original step, skip it and report `Verdict: unverified — too expensive to check`.
-
-## Anti-patterns to avoid
-
-- **Self-confirming verification:** running the exact same script that produced the original claim and getting the same number. That's not verification, that's repetition. Use a different code path.
-- **Vague verification:** "Looks reasonable." Be specific or don't bother.
-- **Skipping on "obvious" steps:** "It just loaded a CSV, no need to verify." Especially verify the boring steps — that's where silent failures hide.
+- The verification script must use a **different code path** than the step it's verifying. Same code, same bug.
+- Verification must be **cheap** (≤ 30 seconds). If a thorough check would take longer than the original step, return `Verdict: unverified — too expensive` and tell the user.
+- **Never** accept "exit 0" as verification.
+- **Never** accept the original step's printed values as verification.
+- **Never** skip verification because the step "looks right".
 
 ## Output checklist
 
-- [ ] Claim restated in one line
-- [ ] At least one check from the appropriate category
-- [ ] At least one universal-failure-pattern check considered (and run if applicable)
-- [ ] Verification ran via execute skill, with its own script (not the original)
+- [ ] Claim restated in one line, matched to a row in the Claim/Requires table
+- [ ] Verification script written separately (`verify_step_<N>.py`), not a re-run of the original
+- [ ] At least one universal-failure-pattern check considered
 - [ ] Verdict is one of: verified | suspect | failed
 - [ ] On `failed`, handed off to debug skill
-- [ ] On `suspect`, surfaced to user before proceeding
+- [ ] On `suspect`, surfaced to user with specifics

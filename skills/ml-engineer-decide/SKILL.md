@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-decide
-description: Turns a research conclusion into an explicit, actionable decision the orchestrator can execute. Use after ml-engineer-research has produced a conclusion, or when the user has provided context and is asking "what should we do". Works across domains — model choice, metric choice, evaluation scheme, sampling strategy, statistical test selection, backtest design. Forces the agent to state its reasoning, list alternatives, and name what would change its mind. For architectural / methodological decisions, requires user approval before the orchestrator acts.
+description: Use after ml-engineer-research returns a conclusion, when the user shares results and asks "what next", or when the orchestrator hits a methodological fork (model class, loss/objective, sampling scheme, primary metric, split scheme, backtest design). Do NOT use for routine choices (chart color, file name) or decisions already locked by an approved plan.
 license: MIT
 metadata:
   source: ml-engineer

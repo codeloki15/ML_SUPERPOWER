@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-write-code
-description: Writes complete, self-contained, non-interactive Python scripts for one step of an approved quantitative plan. Use after a plan has been approved and the orchestrator is ready to implement a specific step. Works across domains — ML, finance, healthcare, forecasting, simulation, statistics. Writes scripts to the current session workdir under newton_workdir/<timestamp>/. Do NOT use without an approved plan.
+description: Use when an approved plan exists and the orchestrator is implementing a specific step in Python. Do NOT use without an approved plan, for general code edits, or for writing scripts outside the current session workdir.
 license: MIT
 metadata:
   source: ml-engineer

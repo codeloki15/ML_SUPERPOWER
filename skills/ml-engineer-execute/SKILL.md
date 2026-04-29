@@ -1,6 +1,6 @@
 ---
 name: ml-engineer-execute
-description: Runs a Python script written by ml-engineer-write-code under an isolated local venv. Captures stdout, stderr, and exit code. Use after a script has been written to newton_workdir/<timestamp>/. On first use this skill creates the venv (one-time, ~30s) after asking the user for approval.
+description: Use when a Python script in the session workdir needs to be run, when a missing-package install is needed, or when the venv must be created. Do NOT use for arbitrary shell commands or scripts outside the workdir.
 license: MIT
 metadata:
   source: ml-engineer
