@@ -1,0 +1,17 @@
+{
+  "name": "ml-superpower",
+  "owner": {
+    "name": "codeloki15",
+    "url": "https://github.com/codeloki15"
+  },
+  "plugins": [
+    {
+      "name": "ml-engineer",
+      "description": "A local-only data-science / ML / quant assistant. Drives a deterministic research → decide → plan → write → execute → verify → debug → review loop in an isolated venv. Domain-agnostic.",
+      "version": "0.1.0",
+      "source": "./",
+      "license": "MIT",
+      "keywords": ["ml", "data-science", "quant", "python", "venv", "local"]
+    }
+  ]
+}
