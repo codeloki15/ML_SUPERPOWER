@@ -1,0 +1,18 @@
+# Per-session workdirs are user-data, never commit
+newton_workdir/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp

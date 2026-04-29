@@ -1,0 +1,10 @@
+{
+  "name": "ml-engineer",
+  "version": "0.1.0",
+  "description": "An ML engineer assistant that plans, writes, executes, and debugs Python data-science / ML tasks in an isolated venv. Runs entirely on the user's local machine.",
+  "author": {
+    "name": "Lokesh"
+  },
+  "license": "MIT",
+  "keywords": ["ml", "data-science", "python", "venv", "local"]
+}
