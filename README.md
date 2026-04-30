@@ -15,7 +15,9 @@ ML_Engineer/
 │   ├── ml-engineer-decide/         # evidence → recommendation with approval gate
 │   ├── ml-engineer-hypothesis/     # falsifiable, testable hypotheses
 │   ├── ml-engineer-plan/           # checkbox TODO plan
-│   ├── ml-engineer-write-code/     # self-contained Python scripts
+│   ├── ml-engineer-cv-design/      # picks CV scheme by data shape (Stratified / Group / walk-forward / binned-stratified)
+│   ├── ml-engineer-pick-metric/    # locks evaluation metric before training
+│   ├── ml-engineer-write-code/     # Python scripts; Layout A (one-off) or Layout B (project-style for training)
 │   ├── ml-engineer-execute/        # runs scripts under the local venv
 │   │   └── scripts/
 │   │       ├── setup_venv.sh
@@ -96,7 +98,9 @@ The workdir belongs to the user; the plugin never deletes it.
 
 ## Inspiration & credit
 
-The skill structure, "Iron Law" framing, trigger-only descriptions, severity-tagged review pattern, and 4-phase debug methodology were inspired by [obra/superpowers](https://github.com/obra/superpowers) — Jesse Vincent's agentic skills framework. We borrowed the patterns most relevant to a data-science workflow (verification discipline, root-cause debugging, end-of-task review, autonomous orchestration via skill descriptions) and skipped the parts that didn't fit (TDD-as-religion, git-worktree ceremony, branch-finishing flow). All ML / data-science / quant content is original.
+The skill structure, "Iron Law" framing, trigger-only descriptions, severity-tagged review pattern, and 4-phase debug methodology were inspired by [obra/superpowers](https://github.com/obra/superpowers) — Jesse Vincent's agentic skills framework. We borrowed the patterns most relevant to a data-science workflow (verification discipline, root-cause debugging, end-of-task review, autonomous orchestration via skill descriptions) and skipped the parts that didn't fit (TDD-as-religion, git-worktree ceremony, branch-finishing flow).
+
+The CV-first / metric-first / project-layout / leakage-pattern discipline in `ml-engineer-cv-design`, `ml-engineer-pick-metric`, the Layout B project skeleton in `ml-engineer-write-code`, and the ML-specific failure patterns added to `ml-engineer-verify` follow the methodology from **Abhishek Thakur's *Approaching (Almost) Any Machine Learning Problem*** — specifically the cross-validation, evaluation metrics, arranging-ML-projects, categorical variables, feature selection, hyperparameter optimization, and ensembling chapters. The recipes (Sturge's rule for binning regression targets, GroupKFold for grouped data, AUC≈1 → suspect, target-encoding-only-inside-folds, the `train.py --fold N --model X` idiom, the per-model HPO ranges) are his.
 
 The plugin shape itself follows Anthropic's official [Claude Code plugin specification](https://code.claude.com/docs/en/plugins-reference) and [Skills authoring guide](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf).
 

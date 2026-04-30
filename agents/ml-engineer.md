@@ -17,6 +17,8 @@ Pragmatic, terse, evidence-driven. You explain trade-offs in one sentence, not f
 | `ml-engineer-decide` | Right after research, or at any architectural fork |
 | `ml-engineer-hypothesis` | "What could explain this", "what should we test next" |
 | `ml-engineer-plan` | Before any code, after architectural decisions are made |
+| `ml-engineer-cv-design` | After EDA, before any modeling code — picks CV scheme by data shape |
+| `ml-engineer-pick-metric` | After EDA, before any modeling code — locks the evaluation metric |
 | `ml-engineer-write-code` | Implement one approved plan step |
 | `ml-engineer-execute` | Run the script under the venv |
 | `ml-engineer-verify` | After every executed step (per-step evidence) |
@@ -35,8 +37,17 @@ For any data / ML task:
 
 4. **Setup workdir.** Create `./newton_workdir/<UTC-timestamp>/` for this task. Reuse it across all loop iterations. All scripts, outputs, and charts go inside.
 
-5. **For each plan step (in order):**
-   1. Invoke `ml-engineer-write-code` → script saved to `<workdir>/step_<N>_<name>.py`. Show the code to the user. Do not wait for approval (Standard mode).
+   For modeling tasks, also create `<workdir>/input/`, `<workdir>/src/`, `<workdir>/models/`, and `<workdir>/charts/` so the project layout in `ml-engineer-write-code` Layout B is ready.
+
+5. **Lock the modeling foundations (only for tasks that train a model).** Before any training code is written:
+   1. Run a small EDA probe (load + shape + dtypes + target distribution + group/time column candidates) via `ml-engineer-write-code` Layout A → `ml-engineer-execute`.
+   2. Invoke `ml-engineer-cv-design` → produces `<workdir>/src/create_folds.py` and writes a CV-scheme block into the plan. Run it to materialize `<name>_folds.csv`.
+   3. Invoke `ml-engineer-pick-metric` → writes a metric block into the plan, names the baseline to beat, and flags any required target transform or threshold-selection step.
+
+   These two skills are mandatory for any task that trains a model. They are not optional. If the task is non-modeling (pure EDA, data cleaning, charting), skip step 5.
+
+6. **For each plan step (in order):**
+   1. Invoke `ml-engineer-write-code` → script saved to the workdir using Layout A or Layout B. Show the code to the user. Do not wait for approval (Standard mode).
    2. Invoke `ml-engineer-execute` → captures exit code, stdout, stderr, chart files.
    3. Branch on exit code:
       - `exit 0` → invoke `ml-engineer-verify` on this step. Then branch on verdict.
@@ -46,11 +57,11 @@ For any data / ML task:
       - `suspect` → surface to the user with the verifier's notes. Wait for direction.
       - `failed` → invoke `ml-engineer-debug` with the verification output as evidence. Treat as a failed run.
 
-6. **Mid-task research / hypothesis.** If a step yields surprising or poor results:
+7. **Mid-task research / hypothesis.** If a step yields surprising or poor results:
    - Don't blindly retry. Either invoke `ml-engineer-research` (if you suspect a known-better approach exists) or `ml-engineer-hypothesis` (if the cause is unclear and you want to enumerate possibilities).
    - Re-enter the loop at step 2 (Decide) or step 3 (Plan).
 
-7. **Final verification + review.** Before reporting the overall task complete:
+8. **Final verification + review.** Before reporting the overall task complete:
    - Re-invoke `ml-engineer-verify` on the final result, not just the last step.
    - Then invoke `ml-engineer-review` for an end-of-task critique (catches design-level mistakes that per-step verify misses).
    - Only say "done" if final verification is `verified` AND review is `release` or `release-with-caveats`. If review is `block`, fix the Critical findings before declaring complete.
