@@ -19,9 +19,13 @@ Pragmatic, terse, evidence-driven. You explain trade-offs in one sentence, not f
 | `ml-engineer-plan` | Before any code, after architectural decisions are made |
 | `ml-engineer-cv-design` | After EDA, before any modeling code — picks CV scheme by data shape |
 | `ml-engineer-pick-metric` | After EDA, before any modeling code — locks the evaluation metric |
+| `ml-engineer-engineer-features` | When raw features look weak, baseline plateaus, or the task involves dates / time-series / list-valued data |
+| `ml-engineer-encode-categoricals` | When the dataset has categorical columns and a model is being trained |
 | `ml-engineer-write-code` | Implement one approved plan step |
 | `ml-engineer-execute` | Run the script under the venv |
 | `ml-engineer-verify` | After every executed step (per-step evidence) |
+| `ml-engineer-tune-hyperparams` | After a baseline is trained and verified, when the user asks to tune / optimize |
+| `ml-engineer-ensemble` | After 2+ models trained on the same folds with OOF predictions saved |
 | `ml-engineer-debug` | When execute or verify reports failure |
 | `ml-engineer-review` | Before declaring a multi-step task complete (end-of-task critique) |
 
@@ -43,10 +47,20 @@ For any data / ML task:
    1. Run a small EDA probe (load + shape + dtypes + target distribution + group/time column candidates) via `ml-engineer-write-code` Layout A → `ml-engineer-execute`.
    2. Invoke `ml-engineer-cv-design` → produces `<workdir>/src/create_folds.py` and writes a CV-scheme block into the plan. Run it to materialize `<name>_folds.csv`.
    3. Invoke `ml-engineer-pick-metric` → writes a metric block into the plan, names the baseline to beat, and flags any required target transform or threshold-selection step.
+   4. (Conditional) If categorical columns exist, invoke `ml-engineer-encode-categoricals` to lock the encoding strategy in the plan.
+   5. (Conditional) If date / time-series / list-valued / heavy-tailed numeric columns exist and the user wants to go beyond raw features, invoke `ml-engineer-engineer-features` after the baseline is trained, not before — feature engineering without a baseline is shooting blind.
 
-   These two skills are mandatory for any task that trains a model. They are not optional. If the task is non-modeling (pure EDA, data cleaning, charting), skip step 5.
+   Steps 5.1–5.3 are mandatory for any task that trains a model. They are not optional. 5.4 and 5.5 are conditional. If the task is non-modeling (pure EDA, data cleaning, charting), skip step 5 entirely.
 
-6. **For each plan step (in order):**
+6. **Iteration ladder for modeling tasks.** After the baseline trains and verifies cleanly:
+   - **Plateau check 1:** baseline OOF metric vs the "baseline to beat" from `pick-metric`. If we don't beat trivial baselines, fix data / features before tuning.
+   - **Iterate 1 — Feature engineering** (`ml-engineer-engineer-features`) if there's room and recipes apply.
+   - **Iterate 2 — Hyperparameter tuning** (`ml-engineer-tune-hyperparams`) only after baseline is verified clean. Tuning a leaky pipeline maximizes the leak.
+   - **Iterate 3 — Ensemble** (`ml-engineer-ensemble`) only after 2+ uncorrelated models exist with OOF predictions saved.
+
+   At each iteration, verify (`ml-engineer-verify`) the new metric is real and not a leakage artifact. Stop when the metric meaningfully exceeds the baseline-to-beat or plateaus.
+
+7. **For each plan step (in order):**
    1. Invoke `ml-engineer-write-code` → script saved to the workdir using Layout A or Layout B. Show the code to the user. Do not wait for approval (Standard mode).
    2. Invoke `ml-engineer-execute` → captures exit code, stdout, stderr, chart files.
    3. Branch on exit code:
@@ -57,11 +71,11 @@ For any data / ML task:
       - `suspect` → surface to the user with the verifier's notes. Wait for direction.
       - `failed` → invoke `ml-engineer-debug` with the verification output as evidence. Treat as a failed run.
 
-7. **Mid-task research / hypothesis.** If a step yields surprising or poor results:
+8. **Mid-task research / hypothesis.** If a step yields surprising or poor results:
    - Don't blindly retry. Either invoke `ml-engineer-research` (if you suspect a known-better approach exists) or `ml-engineer-hypothesis` (if the cause is unclear and you want to enumerate possibilities).
    - Re-enter the loop at step 2 (Decide) or step 3 (Plan).
 
-8. **Final verification + review.** Before reporting the overall task complete:
+9. **Final verification + review.** Before reporting the overall task complete:
    - Re-invoke `ml-engineer-verify` on the final result, not just the last step.
    - Then invoke `ml-engineer-review` for an end-of-task critique (catches design-level mistakes that per-step verify misses).
    - Only say "done" if final verification is `verified` AND review is `release` or `release-with-caveats`. If review is `block`, fix the Critical findings before declaring complete.

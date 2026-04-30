@@ -11,21 +11,25 @@ ML_Engineer/
 ├── agents/
 │   └── ml-engineer.md              # orchestrator subagent — drives the loop
 ├── skills/
-│   ├── ml-engineer-research/       # WebSearch + WebFetch, returns conclusions, no citations
-│   ├── ml-engineer-decide/         # evidence → recommendation with approval gate
-│   ├── ml-engineer-hypothesis/     # falsifiable, testable hypotheses
-│   ├── ml-engineer-plan/           # checkbox TODO plan
-│   ├── ml-engineer-cv-design/      # picks CV scheme by data shape (Stratified / Group / walk-forward / binned-stratified)
-│   ├── ml-engineer-pick-metric/    # locks evaluation metric before training
-│   ├── ml-engineer-write-code/     # Python scripts; Layout A (one-off) or Layout B (project-style for training)
-│   ├── ml-engineer-execute/        # runs scripts under the local venv
+│   ├── ml-engineer-research/             # WebSearch + WebFetch, returns conclusions, no citations
+│   ├── ml-engineer-decide/               # evidence → recommendation with approval gate
+│   ├── ml-engineer-hypothesis/           # falsifiable, testable hypotheses
+│   ├── ml-engineer-plan/                 # checkbox TODO plan
+│   ├── ml-engineer-cv-design/            # picks CV scheme by data shape (Stratified / Group / walk-forward / binned-stratified)
+│   ├── ml-engineer-pick-metric/          # locks evaluation metric before training
+│   ├── ml-engineer-encode-categoricals/  # label / one-hot / target / embedding, fit per fold
+│   ├── ml-engineer-engineer-features/    # date / aggregation / polynomial / binning / log / imputation
+│   ├── ml-engineer-write-code/           # Python scripts; Layout A (one-off) or Layout B (project-style for training)
+│   ├── ml-engineer-execute/              # runs scripts under the local venv
 │   │   └── scripts/
 │   │       ├── setup_venv.sh
 │   │       ├── run.sh
 │   │       └── pip_install.sh
-│   ├── ml-engineer-verify/         # per-step verification (Iron Law: no completion claim without fresh evidence)
-│   ├── ml-engineer-debug/          # 4-phase root-cause debugging, 3-failures escape hatch
-│   └── ml-engineer-review/         # end-of-task critique, severity-tagged findings
+│   ├── ml-engineer-verify/               # per-step verification (Iron Law: no completion claim without fresh evidence)
+│   ├── ml-engineer-tune-hyperparams/     # hand-tune → random search → Bayesian, OOF-mean optimized
+│   ├── ml-engineer-ensemble/             # simple / rank / weighted average and stacking on the same folds
+│   ├── ml-engineer-debug/                # 4-phase root-cause debugging, 3-failures escape hatch
+│   └── ml-engineer-review/               # end-of-task critique, severity-tagged findings
 └── README.md
 ```
 
