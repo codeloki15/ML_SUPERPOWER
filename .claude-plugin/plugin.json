@@ -1,7 +1,7 @@
 {
   "name": "ml-engineer",
-  "version": "0.1.0",
-  "description": "An ML engineer assistant that plans, writes, executes, and debugs Python data-science / ML tasks in an isolated venv. Runs entirely on the user's local machine.",
+  "version": "0.2.0-alpha.1",
+  "description": "An ML engineer assistant for tabular ML, computer vision, NLP, LLM and VLM finetuning. Plans, writes, executes, verifies, and debugs Python work in an isolated local venv with optional handoff to remote GPU providers (Modal, RunPod, Vast, Lambda, Beam, SSH, Colab).",
   "author": {
     "name": "Lokesh"
   },
