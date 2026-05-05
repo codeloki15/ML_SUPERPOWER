@@ -104,11 +104,15 @@ def build_qwen_vl(model_id: str = "Qwen/Qwen2.5-VL-7B-Instruct", load_in_4bit: b
 
     bnb_config = None
     if load_in_4bit:
+        # CRITICAL: skip the vision encoder ('visual') from quantization. Per Hard constraints,
+        # quantizing image encoder weights silently degrades quality 5-15%. Only the LLM
+        # backbone gets quantized; the visual tower stays in bf16/fp16.
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_use_double_quant=True,
+            llm_int8_skip_modules=["visual"],
         )
 
     processor = AutoProcessor.from_pretrained(model_id)
@@ -122,12 +126,17 @@ def build_qwen_vl(model_id: str = "Qwen/Qwen2.5-VL-7B-Instruct", load_in_4bit: b
 
 
 def attach_vlm_lora(model, r: int = 16, target_modules: list[str] | None = None):
-    """LoRA on Qwen2-VL. target_modules differ from text Qwen — research-hooked."""
+    """LoRA on Qwen2-VL. target_modules MUST come from research — VLM target_modules
+    differ from text-only LLM and from each other across VLM families. Do NOT default
+    to text-LLM target_modules; that often touches the vision projection layers
+    incorrectly.
+    """
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-    target_modules = target_modules or [
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj",
-    ]
+    if target_modules is None:
+        raise ValueError(
+            "target_modules is required for VLM LoRA. Invoke ml-engineer-research for the "
+            "current recommendation for this VLM family — text-LLM defaults will NOT work."
+        )
     model = prepare_model_for_kbit_training(model)
     lora_config = LoraConfig(
         r=r, lora_alpha=2 * r, lora_dropout=0.05,

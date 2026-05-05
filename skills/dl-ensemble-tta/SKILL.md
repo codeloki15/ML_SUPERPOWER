@@ -94,12 +94,19 @@ def simple_average(preds_list: list) -> np.ndarray:
 
 
 def rank_average(preds_list: list) -> np.ndarray:
-    """Average per-class ranks — robust to scale differences across models."""
+    """Average per-class ranks across examples — robust to scale differences across models.
+
+    Per the ensembling convention: for each class column, rank all N example scores;
+    each model contributes a (N, C) matrix of per-class ranks; we average across models.
+
+    Use this when models output probabilities on different scales (one model says 0.1-0.9,
+    another says 0.45-0.55). Ranks normalize to a common ordinal scale.
+    """
     from scipy.stats import rankdata
     ranks = []
     for p in preds_list:
-        # rank within each column (each class), per row
-        rank_p = np.array([rankdata(row) for row in p])
+        # rank within each column (each class), across all examples
+        rank_p = np.array([rankdata(p[:, c]) for c in range(p.shape[1])]).T
         ranks.append(rank_p)
     return np.mean(np.stack(ranks, axis=0), axis=0)
 
@@ -129,13 +136,18 @@ def stacking_meta_model(oof_preds: list, oof_labels: np.ndarray,
     return meta.predict_proba(X_test)
 
 
-def cv_tta_classify(model, image, transforms_inverse: list, original_predict_fn) -> np.ndarray:
-    """TTA for image classification: predict on N augmented versions; invert the augmentation if needed; average."""
+def cv_tta_classify(model, image, tta_transforms: list, original_predict_fn) -> np.ndarray:
+    """TTA for image classification: predict on N augmented versions; average.
+
+    tta_transforms: list of dicts each with a "forward" callable that produces an augmented
+    version of the image. For classification, predictions don't need to be inverted (only
+    the image was changed). For detection/segmentation, you'd invert the predicted boxes/masks
+    after applying the inverse spatial transform; that's not handled by this helper.
+    """
     preds = [original_predict_fn(model, image)]  # original
-    for inverse_tf in transforms_inverse:
-        augmented = inverse_tf["forward"](image)
+    for tf in tta_transforms:
+        augmented = tf["forward"](image)
         pred = original_predict_fn(model, augmented)
-        # for classification, no need to invert the prediction (only image was changed)
         preds.append(pred)
     return np.mean(np.stack(preds, axis=0), axis=0)
 

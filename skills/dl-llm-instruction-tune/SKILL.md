@@ -186,15 +186,23 @@ def make_unsloth_sft_trainer(model, tokenizer, train_dataset, response_template:
         tokenizer=tokenizer,
     )
 
-    # Unsloth's response-only masking helper:
-    if response_template:
-        from unsloth.chat_templates import train_on_responses_only
-        trainer = train_on_responses_only(
-            trainer,
-            instruction_part=response_template.split("Response")[0] if "Response" in response_template else response_template,
-            response_part=response_template,
-        )
     return trainer
+
+
+def apply_response_only_masking(trainer, instruction_part: str, response_part: str):
+    """Wrap an Unsloth/TRL trainer so loss is computed on response tokens only.
+
+    Pass the EXACT marker strings used in the chat template, e.g.:
+      instruction_part="### Instruction:\n", response_part="### Response:\n"
+    or for ChatML:
+      instruction_part="<|im_start|>user\n", response_part="<|im_start|>assistant\n"
+    """
+    from unsloth.chat_templates import train_on_responses_only
+    return train_on_responses_only(
+        trainer,
+        instruction_part=instruction_part,
+        response_part=response_part,
+    )
 
 
 def generation_sanity_check(model, tokenizer, prompts: list[str], max_new_tokens: int = 128):

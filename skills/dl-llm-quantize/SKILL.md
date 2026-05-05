@@ -81,10 +81,15 @@ from pathlib import Path
 WORKDIR = Path(os.environ.get("WORKDIR", ".")).resolve()
 
 
-def quantize_awq(model_path: str, output_path: str | None = None,
-                 calib_dataset: str = "pileval", w_bit: int = 4,
-                 q_group_size: int = 128, n_calib_samples: int = 512):
-    """Quantize a HF model to AWQ 4-bit. calib_dataset: HF dataset id or local jsonl path."""
+def quantize_awq(model_path: str, calib_dataset: str, output_path: str | None = None,
+                 w_bit: int = 4, q_group_size: int = 128, n_calib_samples: int = 512):
+    """Quantize a HF model to AWQ 4-bit.
+
+    calib_dataset is REQUIRED — pass an HF dataset id (e.g., 'pileval' for general models)
+    OR a local JSONL of representative inputs from the user's training distribution.
+    Domain-specific models MUST use a domain-specific calib set; generic 'pileval' degrades
+    quality 1-3% on specialty domains. See Hard constraints.
+    """
     from awq import AutoAWQForCausalLM
     from transformers import AutoTokenizer
 
@@ -153,6 +158,7 @@ def quantize_gptq(model_path: str, output_path: str | None = None,
 """GGUF conversion via llama.cpp's convert.py + quantize binary."""
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 WORKDIR = Path(os.environ.get("WORKDIR", ".")).resolve()
@@ -176,7 +182,7 @@ def convert_to_gguf(hf_model_path: str, output_dir: str | None = None,
     f16_path = Path(output_dir) / "model_f16.gguf"
     quant_path = Path(output_dir) / f"model_{quant_type}.gguf"
 
-    subprocess.run(["python", str(convert_py), hf_model_path, "--outfile", str(f16_path), "--outtype", "f16"],
+    subprocess.run([sys.executable, str(convert_py), hf_model_path, "--outfile", str(f16_path), "--outtype", "f16"],
                    check=True)
     subprocess.run([str(quantize_bin), str(f16_path), str(quant_path), quant_type], check=True)
     print(f"GGUF model saved to {quant_path}")

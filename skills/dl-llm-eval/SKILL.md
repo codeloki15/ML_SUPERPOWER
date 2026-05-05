@@ -95,10 +95,7 @@ def run_lm_harness(model_path: str, tasks: list[str], num_fewshot: int = 5,
         "--output_path", str(out_dir),
     ]
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    if result.returncode != 0:
-        print(f"[lm_eval] non-zero exit {result.returncode}")
-        print(result.stderr)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
     # Find latest results JSON
     results_files = sorted(out_dir.rglob("results_*.json"))
     if results_files:
@@ -114,7 +111,7 @@ def save_eval_metrics(metrics: dict, library: str, backend: str, model_path: str
         "library": library,
         "backend": backend,
         "model_path": str(model_path),
-        "model_hash": hashlib.sha256(str(model_path).encode()).hexdigest()[:16],
+        "model_path_hash": hashlib.sha256(str(model_path).encode()).hexdigest()[:16],
         "metrics": metrics,
     }
     out.write_text(json.dumps(record, indent=2, default=str))
@@ -143,7 +140,7 @@ def run_lighteval(model_path: str, tasks: str = "leaderboard", backend: str = "v
         "--output_dir", str(out_dir),
     ]
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
     return {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
 ```
 
