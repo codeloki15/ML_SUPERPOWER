@@ -40,7 +40,7 @@ ML_Engineer/
 │   └── llm-engineer.md             (NEW — LLM/VLM sub-loop)
 ├── skills/
 │   ├── ml-engineer-*               (existing 15 — unchanged)
-│   └── dl-*                        (NEW 29 skills, see taxonomy below)
+│   └── dl-*                        (NEW 33 skills, see taxonomy below)
 └── README.md                       (updated)
 ```
 
@@ -73,15 +73,15 @@ Skills fall into three ownership tiers:
 **Tier 2 — Cross-domain training/data utilities (7 skills, used by 2+ sub-agents):**
 - `dl-load-data`, `dl-augment`, `dl-finetune-loop`, `dl-pseudo-label`, `dl-distillation`, `dl-cv-pretrain` (only when CV needs it but the recipes generalize), `dl-ensemble-tta`.
 
-**Tier 3 — Domain-specific (15 skills, owned by one sub-agent):**
-- CV-owned: `dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`, `dl-cv-eval`.
-- NLP-owned: `dl-nlp-classify`, `dl-nlp-token`, `dl-nlp-eval`.
-- LLM-owned: `dl-llm-lora`, `dl-llm-instruction-tune`, `dl-llm-pref-opt`, `dl-llm-eval`, `dl-llm-merge`, `dl-llm-quantize`, `dl-llm-serve`.
-- VLM-owned (under LLM sub-agent): `dl-vlm-finetune`.
+**Tier 3 — Domain-specific (19 skills, owned by one sub-agent):**
+- CV-owned (6): `dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`, `dl-cv-eval-classify`, `dl-cv-eval-detect`, `dl-cv-eval-segment`.
+- NLP-owned (5): `dl-nlp-classify`, `dl-nlp-token`, `dl-nlp-eval-classify`, `dl-nlp-eval-token`, `dl-nlp-eval-generative`.
+- LLM-owned (7): `dl-llm-lora`, `dl-llm-instruction-tune`, `dl-llm-pref-opt`, `dl-llm-eval`, `dl-llm-merge`, `dl-llm-quantize`, `dl-llm-serve`.
+- VLM-owned (1, under LLM sub-agent): `dl-vlm-finetune`.
 
 Any skill is invokable from any sub-agent or from the tabular orchestrator when relevant. Tier labels describe typical use, not a hard restriction.
 
-## Skill taxonomy (29 skills)
+## Skill taxonomy (33 skills)
 
 Skills derived from late-2025 / early-2026 research on the HuggingFace ecosystem and Kaggle winner solutions.
 
@@ -101,58 +101,62 @@ Skills derived from late-2025 / early-2026 research on the HuggingFace ecosystem
 
 | # | Skill | Purpose |
 |---|---|---|
-| 7 | `dl-load-data` | HF datasets, streaming, webdataset, image folders, text corpora. Tokenization is folded in here as one chapter of data prep. |
-| 8 | `dl-augment` | albumentations + mixup / cutmix / mosaic + RandAugment. NLP augmentation (back-translation, MLM noise) included as conditional sub-section. |
-| 9 | `dl-pseudo-label` | Confidence-thresholded self-training, k-fold-safe pseudo labels, distill-into-single-model. Recurring Kaggle staple. |
+| 8 | `dl-load-data` | HF datasets, streaming, webdataset, image folders, text corpora. Tokenization is folded in here as one chapter of data prep. |
+| 9 | `dl-augment` | Per-use-case selection: albumentations + mixup/cutmix/mosaic + RandAugment for CV; back-translation + MLM noise + EDA-style perturbation for NLP (conditional). Skill picks the appropriate library/recipe based on data shape; no baked-in default. |
+| 10 | `dl-pseudo-label` | Confidence-thresholded self-training, k-fold-safe pseudo labels, distill-into-single-model. Recurring Kaggle staple. |
 
 ### Training core (3)
 
 | # | Skill | Purpose |
 |---|---|---|
-| 10 | `dl-finetune-loop` | Generic HF Trainer / Accelerate boilerplate. Mixed precision (bf16/fp16/fp8) folded in as one config section. |
-| 11 | `dl-cv-pretrain` | SimCLR / DINO / MAE for self-supervised pretraining. Used only when domain has lots of unlabeled images and pretrained backbones do not transfer (medical, satellite, microscopy). Skill's primary job is recognizing when to skip. |
-| 12 | `dl-distillation` | Logit / feature distillation plus reasoning-trace (CoT) distillation. Recurring Kaggle finisher. |
+| 11 | `dl-finetune-loop` | Trainer-vs-Accelerate selector based on task complexity. Decision rules: HF Trainer for standard finetune (auto logging, eval, callbacks, FSDP via `fsdp` arg); Accelerate for custom loops (bespoke loss, multi-task, manual gradient handling). Mixed precision (bf16/fp16/fp8) folded in. |
+| 12 | `dl-cv-pretrain` | SimCLR / DINO / MAE for self-supervised pretraining. Used only when domain has lots of unlabeled images and pretrained backbones do not transfer (medical, satellite, microscopy). Skill's primary job is recognizing when to skip. |
+| 13 | `dl-distillation` | Logit / feature distillation plus reasoning-trace (CoT) distillation. Recurring Kaggle finisher. |
 
-### CV (4)
-
-| # | Skill | Purpose |
-|---|---|---|
-| 13 | `dl-cv-classify` | timm + linear probe / fine-tune recipes. |
-| 14 | `dl-cv-detect` | YOLO11/26 default, RT-DETR alt, Detectron2 for academic baselines. |
-| 15 | `dl-cv-segment` | SAM2 / SAM3 zero-shot/promptable, YOLO-seg for real-time, box→mask combos. |
-| 16 | `dl-cv-eval` | mAP / IoU / Dice / Hausdorff harness for detection and segmentation; top-k accuracy / confusion matrix for classification. |
-
-### NLP (3)
+### CV (6)
 
 | # | Skill | Purpose |
 |---|---|---|
-| 17 | `dl-nlp-classify` | Encoder fine-tune (ModernBERT / DeBERTa-v3 defaults). |
-| 18 | `dl-nlp-token` | Token classification / NER / extractive QA. Separate from classify because loss / decoding differs. |
-| 19 | `dl-nlp-eval` | F1 / exact-match / ROUGE / BLEU / perplexity harness. |
+| 14 | `dl-cv-classify` | timm + linear probe / fine-tune recipes. |
+| 15 | `dl-cv-detect` | Detection training. Backbone family (YOLO11/26, RT-DETR, Detectron2, etc.) chosen at runtime via `dl-prior-art` recommendation + user confirmation — no baked-in default. |
+| 16 | `dl-cv-segment` | SAM2 / SAM3 zero-shot/promptable, YOLO-seg for real-time, box→mask combos. |
+| 17 | `dl-cv-eval-classify` | top-k accuracy, per-class F1, confusion matrix, calibration (ECE) for image classification. |
+| 18 | `dl-cv-eval-detect` | mAP@[.5:.95], mAP-50, mAP-75, per-class AP, COCO-style evaluation for object detection. |
+| 19 | `dl-cv-eval-segment` | mean IoU, Dice, Hausdorff distance, boundary F1, per-class breakdown for semantic / instance segmentation. |
+
+### NLP (5)
+
+| # | Skill | Purpose |
+|---|---|---|
+| 20 | `dl-nlp-classify` | Encoder fine-tune (ModernBERT / DeBERTa-v3 defaults). |
+| 21 | `dl-nlp-token` | Token classification / NER / extractive QA. Separate from classify because loss / decoding differs. |
+| 22 | `dl-nlp-eval-classify` | accuracy, macro/micro F1, MCC, calibration for sequence classification. |
+| 23 | `dl-nlp-eval-token` | span-F1 (seqeval), entity-level precision/recall, exact-match for token classification / NER / extractive QA. |
+| 24 | `dl-nlp-eval-generative` | ROUGE-1/2/L, BLEU, BERTScore, perplexity for generative NLP outputs (summarization, translation, paraphrase). |
 
 ### LLM (7)
 
 | # | Skill | Purpose |
 |---|---|---|
-| 20 | `dl-llm-lora` | PEFT / LoRA / QLoRA / DoRA decision tree. **Default: Unsloth single-GPU recipe** (3 Kaggle wins in 2024–2025, 2-5x faster, 80% less memory). Override path: multi-GPU → Axolotl; user explicitly names TRL → TRL. User has flexibility to override at any point. |
-| 21 | `dl-llm-instruction-tune` | SFT format conventions, chat templates, packing, response-only masking. Also absorbs encoder-decoder seq2seq use cases (T5/BART) since modern stacks use small instruct LLMs. |
-| 22 | `dl-llm-pref-opt` | Method-selection skill: pairwise → DPO, binary thumbs → KTO, single-GPU → ORPO, verifiable reward → GRPO. |
-| 23 | `dl-llm-eval` | lm-evaluation-harness + lighteval, with vLLM / SGLang as backends. |
-| 24 | `dl-llm-merge` | mergekit (SLERP / TIES / DARE-TIES) decision rules. |
-| 25 | `dl-llm-quantize` | Post-training quantization for serving: AWQ default, GPTQ alt, GGUF for llama.cpp. Distinct from QLoRA's training-time bitsandbytes. |
-| 26 | `dl-llm-serve` | vLLM (default) / SGLang (RAG/agents) recipes for eval-time and benchmarking inference. Scoped to "serve to benchmark / generate synthetic data," not production serving. |
+| 25 | `dl-llm-lora` | PEFT / LoRA / QLoRA / DoRA decision tree. **Default: Unsloth single-GPU recipe** (3 Kaggle wins in 2024–2025, 2-5x faster, 80% less memory). Override path: multi-GPU → Axolotl; user explicitly names TRL → TRL. User has flexibility to override at any point. |
+| 26 | `dl-llm-instruction-tune` | SFT format conventions, chat templates, packing, response-only masking. Also absorbs encoder-decoder seq2seq use cases (T5/BART) since modern stacks use small instruct LLMs. |
+| 27 | `dl-llm-pref-opt` | Method-selection skill: pairwise → DPO, binary thumbs → KTO, single-GPU → ORPO, verifiable reward → GRPO. |
+| 28 | `dl-llm-eval` | lm-evaluation-harness + lighteval, with vLLM / SGLang as backends. |
+| 29 | `dl-llm-merge` | mergekit (SLERP / TIES / DARE-TIES) decision rules. |
+| 30 | `dl-llm-quantize` | Post-training quantization for serving: AWQ default, GPTQ alt, GGUF for llama.cpp. Distinct from QLoRA's training-time bitsandbytes. |
+| 31 | `dl-llm-serve` | vLLM (default) / SGLang (RAG/agents) recipes for eval-time and benchmarking inference. Scoped to "serve to benchmark / generate synthetic data," not production serving. |
 
 ### VLM (1)
 
 | # | Skill | Purpose |
 |---|---|---|
-| 27 | `dl-vlm-finetune` | TRL Qwen2-VL cookbook plus Axolotl Qwen2.5-VL / Pixtral / LLaVA / SmolVLM2 recipes. |
+| 32 | `dl-vlm-finetune` | TRL Qwen2-VL cookbook plus Axolotl Qwen2.5-VL / Pixtral / LLaVA / SmolVLM2 recipes. |
 
 ### Inference / ensembling (1)
 
 | # | Skill | Purpose |
 |---|---|---|
-| 28 | `dl-ensemble-tta` | K-fold OOF blending, rank-average, snapshot ensembles, TTA. Cross-domain (CV + NLP + tabular). |
+| 33 | `dl-ensemble-tta` | K-fold OOF blending, rank-average, snapshot ensembles, TTA. Cross-domain (CV + NLP + tabular). |
 
 ## Loop variants
 
@@ -172,7 +176,7 @@ Skills derived from late-2025 / early-2026 research on the HuggingFace ecosystem
 6. Decide compute placement       → dl-detect-env says local? else dl-remote-execute
 7. Wire experiment tracking       → dl-experiment-track
 8. Train baseline                 → dl-finetune-loop
-9. Verify                         → ml-engineer-verify + dl-cv-eval
+9. Verify                         → ml-engineer-verify + dl-cv-eval-{classify,detect,segment} (pick by task)
 10. Iterate ladder:
     - Pretrain on unlabeled?      → dl-cv-pretrain (rare)
     - Pseudo-label?               → dl-pseudo-label
@@ -186,7 +190,7 @@ Skills derived from late-2025 / early-2026 research on the HuggingFace ecosystem
 Same shape as CV with these substitutions:
 - 5d: tokenizer + max_length policy folded into `dl-load-data`.
 - 5e: `dl-nlp-classify` or `dl-nlp-token`.
-- 9: `ml-engineer-verify` + `dl-nlp-eval`.
+- 9: `ml-engineer-verify` + `dl-nlp-eval-{classify,token,generative}` (pick by task).
 - `dl-augment` step is conditional (back-translation, dropout, MLM-noise — not always applied).
 
 ### LLM loop (`llm-engineer.md`)
@@ -355,7 +359,7 @@ Each skill body has these sections, scaled to actual content (no fixed line cap)
 8. **Hard constraints.** Skill-specific rules — what NOT to do.
 9. **Output checklist.** Self-check the skill runs before returning.
 
-### Content rules across all 29 skills
+### Content rules across all 33 skills
 
 - **No baked-in version numbers.** "Use the latest stable HF transformers" — never "use transformers==4.46". Version pinning is the user's venv concern.
 - **No baked-in benchmark numbers.** VRAM math gets stale. Defer to `dl-detect-env` and runtime probes.
@@ -411,14 +415,22 @@ A skill is "v1 done" when:
 
 After Phase 1: the plugin can route a DL task to the right sub-agent, detect the environment, hand off to a remote provider, and run a generic finetune script. No domain-specific intelligence yet.
 
-### Phase 2 — CV + NLP breadth (10 skills)
+### Phase 2 — CV + NLP breadth (14 skills)
 
-- CV: `dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`, `dl-cv-eval`.
-- NLP: `dl-nlp-classify`, `dl-nlp-token`, `dl-nlp-eval`.
-- Data/training core: `dl-load-data`, `dl-augment`, `dl-finetune-loop`.
+- CV training (3): `dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`.
+- CV evaluation (3): `dl-cv-eval-classify`, `dl-cv-eval-detect`, `dl-cv-eval-segment`.
+- NLP training (2): `dl-nlp-classify`, `dl-nlp-token`.
+- NLP evaluation (3): `dl-nlp-eval-classify`, `dl-nlp-eval-token`, `dl-nlp-eval-generative`.
+- Cross-domain data + training (3): `dl-load-data`, `dl-augment`, `dl-finetune-loop`.
 - Plugin version bump to `0.2.0-alpha.2`.
 
 After Phase 2: end-to-end CV and NLP tasks work. LLM/VLM tasks still route to LLM sub-agent but only get generic finetune support.
+
+**Key Phase 2 design decisions (locked during brainstorm):**
+- Eval skills are split per task type — `dl-cv-eval-{classify,detect,segment}` and `dl-nlp-eval-{classify,token,generative}` — rather than a single multi-mode skill. Tighter triggers, easier to reason about per-task verification.
+- `dl-cv-detect` does NOT bake in a backbone default. The skill calls `dl-prior-art` for a SOTA recommendation, then asks the user to confirm at runtime.
+- `dl-augment` picks library/recipe per use case (albumentations + timm.data.mixup for CV; conditional NLP recipes). No baked-in default.
+- `dl-finetune-loop` picks Trainer vs Accelerate based on task complexity (Trainer for standard finetune; Accelerate for custom loops with bespoke loss / multi-task / manual gradient handling).
 
 ### Phase 3 — LLM + VLM + ensembling (12 skills)
 
