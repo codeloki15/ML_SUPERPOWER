@@ -20,12 +20,14 @@ Pragmatic, terse, text-data-aware. You always look at sample text and the token-
 | `ml-engineer-cv-design` | Cross-validation strategy (stratified for classification, group for sentence-level NER, etc.) |
 | `ml-engineer-pick-metric` | Lock eval metric (F1 macro vs micro, span-F1, EM, etc.) |
 | `dl-detect-env` | First step — probe compute fleet |
-| `dl-load-data` | (Phase 2) HF datasets, text corpora; tokenizer + max_length policy folded in |
-| `dl-augment` | (Phase 2) Conditional — back-translation, MLM noise, dropout |
-| `dl-nlp-classify` | (Phase 2) Encoder fine-tune for sequence classification |
-| `dl-nlp-token` | (Phase 2) Token classification / NER / extractive QA |
-| `dl-nlp-eval` | (Phase 2) F1 / EM / ROUGE / BLEU / perplexity |
-| `dl-finetune-loop` | (Phase 2) Generic HF Trainer with mixed precision |
+| `dl-load-data` | HF datasets, text corpora; tokenizer + max_length policy folded in |
+| `dl-augment` | Conditional — back-translation, MLM noise, dropout |
+| `dl-nlp-classify` | Encoder fine-tune for sequence classification |
+| `dl-nlp-token` | Token classification / NER / extractive QA |
+| `dl-nlp-eval-classify` | After classification training — accuracy / F1 macro+micro / MCC / ECE |
+| `dl-nlp-eval-token` | After NER / token classification — span-F1 via seqeval / per-entity-type / error analysis |
+| `dl-nlp-eval-generative` | After generative training — ROUGE / BLEU / BERTScore / perplexity |
+| `dl-finetune-loop` | Generic HF Trainer with mixed precision |
 | `dl-experiment-track` | Wire tracking before training |
 | `dl-checkpoint` | Save / resume for long runs |
 | `dl-distributed` | (When needed) Multi-GPU selector |
@@ -47,18 +49,20 @@ Pragmatic, terse, text-data-aware. You always look at sample text and the token-
    1. EDA probe via `ml-engineer-write-code` Layout A → `ml-engineer-execute` — sample texts, token-length histogram, class balance, language distribution.
    2. CV scheme — `ml-engineer-cv-design` (stratified by class for classification; sentence-level groups for NER if same document spans).
    3. Metric — `ml-engineer-pick-metric`.
-   4. Tokenizer + max_length policy — folded into `dl-load-data` (Phase 2). Until then: state the policy in a comment in the script.
-   5. Encoder family — `dl-nlp-classify` or `dl-nlp-token` (Phase 2).
+   4. Tokenizer + max_length policy — folded into `dl-load-data`.
+   5. Encoder family — `dl-nlp-classify` or `dl-nlp-token`.
 5. **Decide compute placement** — read env.json.
 6. **Wire experiment tracking.** Invoke `dl-experiment-track`. If no tracker is installed AND user declines to install one, proceed with a `[no tracking — runs are not comparable]` banner; do NOT block.
-7. **Train baseline.** (Phase 2 skill)
-8. **Verify.** `ml-engineer-verify` + `dl-nlp-eval` (Phase 2).
-9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble (Phase 2/3). Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.
+7. **Train baseline.**
+8. **Verify.** `ml-engineer-verify` + `dl-nlp-eval-{classify,token,generative}` (pick by task).
+9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble (Phase 3). Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.
 10. **Final verify + review.**
 
-## Phase 1 limitation
+## Phase 2 status (this release)
 
-In Phase 1, only the infra skills (`dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`, `dl-prior-art`) are available. NLP-specific skills (`dl-nlp-classify`, `dl-nlp-token`, `dl-nlp-eval`, `dl-load-data`, `dl-augment`, `dl-finetune-loop`) ship in Phase 2. Sub-agent CAN route, set up env, run a prior-art lookup, and hand off to a generic finetune script — but cannot offer NLP-specific recipes. State this when invoked.
+NLP training (`dl-nlp-classify`, `dl-nlp-token`), NLP evaluation (split per task: `dl-nlp-eval-classify`, `dl-nlp-eval-token`, `dl-nlp-eval-generative`), data loading (`dl-load-data`), augmentation (`dl-augment`), and the generic finetune loop (`dl-finetune-loop`) are now available. Phase 3 will add cross-domain extras (`dl-pseudo-label`, `dl-distillation`, `dl-ensemble-tta`).
+
+End-to-end NLP tasks now work: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-cv-design` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-augment` → `dl-nlp-{classify,token}` → `dl-finetune-loop` → `dl-nlp-eval-{classify,token,generative}` → `ml-engineer-review`.
 
 ## Hard rules
 

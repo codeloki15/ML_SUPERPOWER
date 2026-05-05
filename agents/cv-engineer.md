@@ -20,14 +20,16 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
 | `ml-engineer-cv-design` | After EDA, before any modeling code — picks CV scheme by data shape (note: `cv` here means cross-validation, not computer-vision; the skill is image-aware) |
 | `ml-engineer-pick-metric` | After EDA, before any modeling code — locks the evaluation metric |
 | `dl-detect-env` | First step of any task — probes compute fleet and writes env.json |
-| `dl-load-data` | (Phase 2) Load image folders, HF datasets, webdataset; tokenize if VLM |
-| `dl-augment` | (Phase 2) Albumentations + mixup / cutmix / mosaic / RandAugment |
-| `dl-cv-classify` | (Phase 2) Image classification finetune via timm |
-| `dl-cv-detect` | (Phase 2) Object detection (YOLO11/26, RT-DETR, Detectron2) |
-| `dl-cv-segment` | (Phase 2) Semantic / instance / panoptic segmentation (SAM2/3, YOLO-seg) |
-| `dl-cv-eval` | (Phase 2) mAP / IoU / Dice / Hausdorff harness |
+| `dl-load-data` | Load image folders, HF datasets, webdataset; tokenize if VLM |
+| `dl-augment` | Albumentations + mixup / cutmix / mosaic / RandAugment |
+| `dl-cv-classify` | Image classification finetune via timm |
+| `dl-cv-detect` | Object detection (YOLO11/26, RT-DETR, Detectron2) |
+| `dl-cv-segment` | Semantic / instance / panoptic segmentation (SAM2/3, YOLO-seg) |
+| `dl-cv-eval-classify` | After classification training — top-k accuracy / per-class F1 / confusion matrix / ECE |
+| `dl-cv-eval-detect` | After detection training — COCO-style mAP via pycocotools |
+| `dl-cv-eval-segment` | After segmentation training — mIoU / Dice / HD95 / boundary F1 |
 | `dl-cv-pretrain` | (Phase 3) Self-supervised pretraining (SimCLR / DINO / MAE) — rare |
-| `dl-finetune-loop` | (Phase 2) Generic HF Trainer / Accelerate boilerplate with mixed precision |
+| `dl-finetune-loop` | Generic HF Trainer / Accelerate boilerplate with mixed precision |
 | `dl-experiment-track` | Wire wandb / mlflow / aim before training |
 | `dl-checkpoint` | Save / resume logic for runs >30 min |
 | `dl-distributed` | (When needed) Single-GPU / FSDP2 / DeepSpeed selector |
@@ -51,12 +53,12 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
    1. EDA probe — image stats, class balance, resolution histogram, sample images.
    2. CV scheme — `ml-engineer-cv-design` (image-aware: stratified, group, or custom for multi-label).
    3. Metric — `ml-engineer-pick-metric`.
-   4. Augmentation policy — `dl-augment` (Phase 2).
-   5. Backbone family — `dl-cv-classify` | `dl-cv-detect` | `dl-cv-segment` (Phase 2).
+   4. Augmentation policy — `dl-augment`.
+   5. Backbone family — `dl-cv-classify` | `dl-cv-detect` | `dl-cv-segment`.
 7. **Decide compute placement.** Read `env.json`. If local fits, use `ml-engineer-execute`. Else use `dl-remote-execute`.
 8. **Wire experiment tracking.** Invoke `dl-experiment-track`. If the user has no tracker installed AND declines to install one, proceed with a banner `[no tracking — runs are not comparable]` and skip the tracking step. Do NOT block the loop on this.
-9. **Train baseline.** Invoke the relevant CV training skill (Phase 2) which uses `dl-finetune-loop`.
-10. **Verify.** `ml-engineer-verify` + `dl-cv-eval` (Phase 2).
+9. **Train baseline.** Invoke the relevant CV training skill which uses `dl-finetune-loop`.
+10. **Verify.** `ml-engineer-verify` + `dl-cv-eval-{classify,detect,segment}` (pick by task).
 11. **Iterate ladder.** (Phase 3 skills)
     - Pretrain on unlabeled? → `dl-cv-pretrain` (rare).
     - Pseudo-label? → `dl-pseudo-label`.
@@ -66,9 +68,11 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
 
 Per-step error handling, debug retry cap, and verification discipline are inherited from `ml-engineer.md`. See that file for the full iron rules.
 
-## Phase 1 limitation
+## Phase 2 status (this release)
 
-In Phase 1, only the infra skills (`dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`, `dl-prior-art`) are available. CV-specific skills (`dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`, `dl-cv-eval`, `dl-load-data`, `dl-augment`, `dl-finetune-loop`) ship in Phase 2. Until then, this sub-agent CAN route a CV task to itself, set up the env, run a prior-art lookup, and hand off to a generic finetune script written by `ml-engineer-write-code` — but cannot offer CV-specific recipes. State this limitation to the user when invoked.
+CV training (`dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`), CV evaluation (split per task: `dl-cv-eval-classify`, `dl-cv-eval-detect`, `dl-cv-eval-segment`), data loading (`dl-load-data`), augmentation (`dl-augment`), and the generic finetune loop (`dl-finetune-loop`) are now available. Phase 3 will add cross-domain extras (`dl-pseudo-label`, `dl-distillation`, `dl-cv-pretrain`, `dl-ensemble-tta`).
+
+End-to-end CV tasks now work: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-cv-design` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-augment` → `dl-cv-{classify,detect,segment}` → `dl-finetune-loop` → `dl-cv-eval-{classify,detect,segment}` → `ml-engineer-review`.
 
 ## Hard rules
 

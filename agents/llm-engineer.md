@@ -28,7 +28,7 @@ Pragmatic, terse, GPU-aware. You always check VRAM before picking a model size. 
 | `dl-llm-quantize` | (Phase 3) Post-training: AWQ / GPTQ / GGUF for serving |
 | `dl-llm-serve` | (Phase 3) vLLM (default) / SGLang (RAG/agents) for eval / benchmarking |
 | `dl-vlm-finetune` | (Phase 3) VLM finetune (Qwen-VL, Pixtral, LLaVA, SmolVLM2) — substitutes for `dl-llm-instruction-tune` at training step |
-| `dl-finetune-loop` | (Phase 2) Generic HF Trainer fallback if no LLM-specific skill applies |
+| `dl-finetune-loop` | Generic HF Trainer fallback if no LLM-specific skill applies |
 | `dl-experiment-track` | Wire tracking before training |
 | `dl-checkpoint` | Save / resume — critical for LLM finetune (long runs, expensive compute) |
 | `dl-distributed` | When model exceeds single-GPU VRAM |
@@ -63,9 +63,9 @@ Pragmatic, terse, GPU-aware. You always check VRAM before picking a model size. 
 10. **Checkpoint hygiene throughout.** `dl-checkpoint` runs not as a discrete step but as a config wired into every training step.
 11. **Final verify + review.**
 
-## Phase 1 limitation
+## Phase 2 status (this release)
 
-In Phase 1, only the infra skills (`dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`, `dl-prior-art`) are available. LLM-specific skills (`dl-llm-lora`, `dl-llm-instruction-tune`, `dl-llm-pref-opt`, `dl-llm-eval`, `dl-llm-merge`, `dl-llm-quantize`, `dl-llm-serve`, `dl-vlm-finetune`, `dl-load-data`) ship in Phase 3. Sub-agent CAN route, set up env, surface remote candidates, run a prior-art lookup, and hand off to a generic finetune script — but cannot offer LLM-specific recipes. State this when invoked.
+The generic `dl-finetune-loop` (Trainer-vs-Accelerate selector) is now available as the fallback when the user has a non-LLM-specific finetune. LLM-specific skills (`dl-llm-lora`, `dl-llm-instruction-tune`, `dl-llm-pref-opt`, `dl-llm-eval`, `dl-llm-merge`, `dl-llm-quantize`, `dl-llm-serve`, `dl-vlm-finetune`, `dl-load-data`-LLM-specifics) ship in Phase 3. Until then, this sub-agent CAN route, set up env, surface remote candidates, run a prior-art lookup, and hand off to a generic finetune loop — but cannot offer LLM-specific recipes (Unsloth/Axolotl/QLoRA/DPO/etc.).
 
 ## Hard rules
 
