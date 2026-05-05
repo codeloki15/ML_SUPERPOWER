@@ -16,7 +16,7 @@ ML_Engineer/
 │   └── llm-engineer.md             # LLM/VLM sub-orchestrator
 ├── skills/
 │   ├── ml-engineer-*               # 15 tabular/quant skills (unchanged from v0.1.0)
-│   └── dl-*                        # NEW deep-learning skills (Phase 1+2 ships 21, total target 33)
+│   └── dl-*                        # NEW deep-learning skills (v0.2.0 ships all 33)
 │       ├── dl-detect-env/          # probes local compute + remote handoffs, writes env.json
 │       ├── dl-remote-execute/      # 7-provider dispatcher (Modal/RunPod/Vast/Lambda/Beam/SSH/Colab)
 │       ├── dl-experiment-track/    # wandb / mlflow / aim wiring
@@ -37,7 +37,19 @@ ML_Engineer/
 │       ├── dl-nlp-token/           # NER / token classification with BIO alignment verification
 │       ├── dl-nlp-eval-classify/   # accuracy / F1 modes / MCC / ECE
 │       ├── dl-nlp-eval-token/      # span-F1 (seqeval) / error analysis (FP/FN/boundary)
-│       └── dl-nlp-eval-generative/ # ROUGE / BLEU / BERTScore / perplexity
+│       ├── dl-nlp-eval-generative/ # ROUGE / BLEU / BERTScore / perplexity
+│       ├── dl-llm-lora/            # PEFT/LoRA/QLoRA/DoRA selector with Unsloth default
+│       ├── dl-llm-instruction-tune/ # SFT with chat templates, packing, response-only masking
+│       ├── dl-llm-pref-opt/        # DPO/KTO/ORPO/GRPO selector by data shape
+│       ├── dl-llm-eval/            # lm-eval-harness + lighteval with vLLM/SGLang
+│       ├── dl-llm-merge/           # mergekit SLERP/TIES/DARE-TIES
+│       ├── dl-llm-quantize/        # AWQ/GPTQ/GGUF for serving (with calibration)
+│       ├── dl-llm-serve/           # vLLM/SGLang for eval-time inference
+│       ├── dl-vlm-finetune/        # Qwen-VL / Pixtral / LLaVA / SmolVLM finetune
+│       ├── dl-pseudo-label/        # K-fold-safe self-training
+│       ├── dl-distillation/        # Logit / feature / CoT distillation
+│       ├── dl-ensemble-tta/        # Cross-domain OOF blend + TTA
+│       └── dl-cv-pretrain/         # DINO/SimCLR/MAE (skip-by-default)
 ├── docs/superpowers/
 │   ├── specs/                      # design specs (committed before implementation)
 │   └── plans/                      # implementation plans (per-phase)
@@ -77,7 +89,7 @@ Per-step:
 
 Before declaring the whole task complete, `ml-engineer-review` runs a fresh-eyes critique covering plan-vs-result drift, methodological soundness (walk-forward CV, transaction costs, multiple-testing correction, scaffold splits, assumption checks), reproducibility, and honesty of the result.
 
-## Deep learning support (v0.2.0-alpha.2, Phase 1 + Phase 2)
+## Deep learning support (v0.2.0 — full v1 release)
 
 Beyond tabular ML, the `ml-engineer` agent now routes deep-learning tasks (CV, NLP, LLM, VLM) to dedicated sub-agents:
 
@@ -107,7 +119,25 @@ Each sub-agent runs the same disciplined loop as the tabular orchestrator (resea
 - `dl-nlp-classify` / `dl-nlp-token` — encoder classification / NER with mandatory BIO alignment verification.
 - `dl-nlp-eval-classify` / `dl-nlp-eval-token` / `dl-nlp-eval-generative` — split per task: F1+MCC+ECE / seqeval span-F1 with error analysis / ROUGE+BLEU+BERTScore.
 
-LLM/VLM-specific skills (Unsloth/Axolotl LoRA, DPO/GRPO, mergekit, AWQ, VLM finetune) ship in Phase 3. Until then, the `llm-engineer` sub-agent uses the generic `dl-finetune-loop` Trainer path as fallback.
+**v0.2.0 release status:** All 33 skills shipped. The full LLM/VLM/ensembling stack now works end-to-end:
+
+**LLM (7 skills):**
+- `dl-llm-lora` — PEFT/LoRA/QLoRA/DoRA selector with Unsloth single-GPU default (Kaggle-validated, 2-5x faster, 80% less memory).
+- `dl-llm-instruction-tune` — SFT with chat-template lock, packing, mandatory generation sanity check.
+- `dl-llm-pref-opt` — DPO/KTO/ORPO/GRPO selector keyed to data shape (pairwise/binary/single-GPU/verifiable-reward).
+- `dl-llm-eval` — lm-evaluation-harness + lighteval with vLLM/SGLang backends; benchmark version pinning + reproducibility metadata.
+- `dl-llm-merge` — mergekit SLERP/TIES/DARE-TIES; cheap and often top-of-leaderboard.
+- `dl-llm-quantize` — AWQ (default for serving), GPTQ (legacy), GGUF (local). Distinct from QLoRA's training-time bnb.
+- `dl-llm-serve` — vLLM (default) / SGLang (RAG/agents) for eval-time inference. Always warm + tear down.
+
+**VLM (1 skill):**
+- `dl-vlm-finetune` — TRL Qwen2-VL cookbook + Axolotl Qwen2.5-VL/Pixtral/LLaVA/SmolVLM2 recipes. AutoProcessor mandatory; vision encoder NOT quantized.
+
+**Cross-domain (4 skills):**
+- `dl-pseudo-label` — k-fold-safe self-training with confidence > ECE.
+- `dl-distillation` — logit / feature / CoT (chain-of-thought) distillation; teacher must beat student baseline.
+- `dl-ensemble-tta` — cross-domain OOF blend, rank-average, snapshot, TTA. Sanity-checks vs best single model.
+- `dl-cv-pretrain` — DINO/SimCLR/MAE self-supervised pretraining (skip-by-default; only for specialty domains where timm pretrained underperforms).
 
 **Remote execution.** `dl-detect-env` probes for configured remote providers; `dl-remote-execute` shows the user the top-3 candidates with cost + latency tradeoffs and runs the script on the chosen provider, fetching results back to the local workdir. The user picks once at the start of a remote chain; subsequent remote steps continue silently on the same provider until the user switches or the resource requirement changes.
 
