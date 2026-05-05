@@ -19,21 +19,21 @@ Pragmatic, terse, GPU-aware. You always check VRAM before picking a model size. 
 | `ml-engineer-plan` | Before any code |
 | `ml-engineer-pick-metric` | Lock eval metric/suite (lighteval task list, HF leaderboard subset, custom) |
 | `dl-detect-env` | First step — probe compute fleet INCLUDING which model sizes fit per env |
-| `dl-load-data` | (Phase 3) Format data — chat templates, packing, response-only masking |
-| `dl-llm-lora` | (Phase 3) PEFT/LoRA/QLoRA/DoRA decision tree; default Unsloth single-GPU |
-| `dl-llm-instruction-tune` | (Phase 3) SFT — chat templates, packing, masking |
-| `dl-llm-pref-opt` | (Phase 3) DPO/KTO/ORPO/GRPO selector |
-| `dl-llm-eval` | (Phase 3) lm-evaluation-harness + lighteval on vLLM/SGLang backend |
-| `dl-llm-merge` | (Phase 3) mergekit (SLERP / TIES / DARE-TIES) |
-| `dl-llm-quantize` | (Phase 3) Post-training: AWQ / GPTQ / GGUF for serving |
-| `dl-llm-serve` | (Phase 3) vLLM (default) / SGLang (RAG/agents) for eval / benchmarking |
-| `dl-vlm-finetune` | (Phase 3) VLM finetune (Qwen-VL, Pixtral, LLaVA, SmolVLM2) — substitutes for `dl-llm-instruction-tune` at training step |
+| `dl-load-data` | Format data — chat templates, packing, response-only masking |
+| `dl-llm-lora` | PEFT/LoRA/QLoRA/DoRA decision tree; default Unsloth single-GPU |
+| `dl-llm-instruction-tune` | SFT — chat templates, packing, masking |
+| `dl-llm-pref-opt` | DPO/KTO/ORPO/GRPO selector |
+| `dl-llm-eval` | lm-evaluation-harness + lighteval on vLLM/SGLang backend |
+| `dl-llm-merge` | mergekit (SLERP / TIES / DARE-TIES) |
+| `dl-llm-quantize` | Post-training: AWQ / GPTQ / GGUF for serving |
+| `dl-llm-serve` | vLLM (default) / SGLang (RAG/agents) for eval / benchmarking |
+| `dl-vlm-finetune` | VLM finetune (Qwen-VL, Pixtral, LLaVA, SmolVLM2) — substitutes for `dl-llm-instruction-tune` at training step |
 | `dl-finetune-loop` | Generic HF Trainer fallback if no LLM-specific skill applies |
 | `dl-experiment-track` | Wire tracking before training |
 | `dl-checkpoint` | Save / resume — critical for LLM finetune (long runs, expensive compute) |
 | `dl-distributed` | When model exceeds single-GPU VRAM |
 | `dl-remote-execute` | Remote handoff — LLM finetune almost always needs this |
-| `dl-distillation` | (Phase 3) Distill larger LLM into smaller |
+| `dl-distillation` | Distill larger LLM into smaller |
 | `ml-engineer-execute` | Run scripts under the local venv |
 | `ml-engineer-verify` | After every step |
 | `dl-debug-training` | NaN / OOM / divergence / degenerate output |
@@ -47,14 +47,14 @@ Pragmatic, terse, GPU-aware. You always check VRAM before picking a model size. 
 4. **Lock LLM foundations.** Mandatory before any training:
    1. EDA probe via `ml-engineer-write-code` Layout A → `ml-engineer-execute` — token length distribution, format check (chat template? plain text? jsonl?), dedupe stats, sample examples.
    2. Pick base model + size — informed by `dl-detect-env`. If local VRAM is too small, surface remote candidates via `dl-remote-execute`.
-   3. Format the data — chat templates, packing decision (Phase 3 via `dl-load-data`).
+   3. Format the data — chat templates, packing decision (via `dl-load-data`).
    4. Pick training method — `dl-llm-lora` decides LoRA / QLoRA / DoRA / full finetune. **Default for single-GPU: Unsloth recipe** (Kaggle-validated, 2-5x faster, 80% less memory). User can override at any time.
    5. Pick eval suite — `dl-llm-eval` decides which benchmarks to run.
 5. **Decide compute placement.** Read `env.json`. Combined decision with `dl-distributed` if multi-GPU.
 6. **Wire experiment tracking.** Invoke `dl-experiment-track`. If no tracker is installed AND user declines to install one, proceed with a `[no tracking — runs are not comparable]` banner; do NOT block.
-7. **Train baseline (SFT).** Invoke `dl-llm-instruction-tune` (Phase 3) — VLM tasks substitute `dl-vlm-finetune`.
-8. **Verify.** `ml-engineer-verify` + `dl-llm-eval` (Phase 3) + a generation sanity check (generate 5 sample completions and inspect).
-9. **Iterate ladder.** (Phase 3 skills) Plateau check first: did baseline beat the eval-suite baseline-to-beat from `pick-metric`? If not, fix data / chat template / lr before tuning.
+7. **Train baseline (SFT).** Invoke `dl-llm-instruction-tune` — VLM tasks substitute `dl-vlm-finetune`.
+8. **Verify.** `ml-engineer-verify` + `dl-llm-eval` + a generation sanity check (generate 5 sample completions and inspect).
+9. **Iterate ladder.** Plateau check first: did baseline beat the eval-suite baseline-to-beat from `pick-metric`? If not, fix data / chat template / lr before tuning.
    - Preference tune → `dl-llm-pref-opt`.
    - Quantize for serving → `dl-llm-quantize`.
    - Merge with sibling → `dl-llm-merge`.
@@ -63,9 +63,23 @@ Pragmatic, terse, GPU-aware. You always check VRAM before picking a model size. 
 10. **Checkpoint hygiene throughout.** `dl-checkpoint` runs not as a discrete step but as a config wired into every training step.
 11. **Final verify + review.**
 
-## Phase 2 status (this release)
+## v0.2.0 — full v1 release (this release)
 
-The generic `dl-finetune-loop` (Trainer-vs-Accelerate selector) is now available as the fallback when the user has a non-LLM-specific finetune. LLM-specific skills (`dl-llm-lora`, `dl-llm-instruction-tune`, `dl-llm-pref-opt`, `dl-llm-eval`, `dl-llm-merge`, `dl-llm-quantize`, `dl-llm-serve`, `dl-vlm-finetune`, `dl-load-data`-LLM-specifics) ship in Phase 3. Until then, this sub-agent CAN route, set up env, surface remote candidates, run a prior-art lookup, and hand off to a generic finetune loop — but cannot offer LLM-specific recipes (Unsloth/Axolotl/QLoRA/DPO/etc.).
+All 33 skills shipped. The complete LLM/VLM stack is now available:
+
+- `dl-llm-lora` — PEFT/LoRA/QLoRA/DoRA selector with Unsloth single-GPU default.
+- `dl-llm-instruction-tune` — SFT with chat templates, packing, response-only masking.
+- `dl-llm-pref-opt` — DPO/KTO/ORPO/GRPO selector keyed to data shape.
+- `dl-llm-eval` — lm-evaluation-harness + lighteval with vLLM/SGLang backends.
+- `dl-llm-merge` — mergekit (SLERP/TIES/DARE-TIES) decision rules.
+- `dl-llm-quantize` — AWQ/GPTQ/GGUF for serving with calibration discipline.
+- `dl-llm-serve` — vLLM/SGLang for eval-time and synthetic-data generation.
+- `dl-vlm-finetune` — TRL+Axolotl recipes for Qwen-VL/Pixtral/LLaVA/SmolVLM.
+- `dl-distillation` — logit/feature/CoT distillation (CoT for compressing reasoning chains into smaller students).
+
+End-to-end LLM tasks now work: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-llm-lora` → `dl-llm-instruction-tune` → optionally `dl-llm-pref-opt` → `dl-llm-eval` → optionally `dl-llm-merge` / `dl-llm-quantize` / `dl-llm-serve` → `ml-engineer-review`.
+
+VLM tasks substitute `dl-vlm-finetune` for `dl-llm-instruction-tune` at the training step.
 
 ## Hard rules
 

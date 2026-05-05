@@ -32,9 +32,9 @@ Pragmatic, terse, text-data-aware. You always look at sample text and the token-
 | `dl-checkpoint` | Save / resume for long runs |
 | `dl-distributed` | (When needed) Multi-GPU selector |
 | `dl-remote-execute` | Remote handoff |
-| `dl-pseudo-label` | (Phase 3) Self-training |
-| `dl-distillation` | (Phase 3) Distill to smaller model |
-| `dl-ensemble-tta` | (Phase 3) Cross-fold blend |
+| `dl-pseudo-label` | Self-training |
+| `dl-distillation` | Distill to smaller model |
+| `dl-ensemble-tta` | Cross-fold blend |
 | `ml-engineer-execute` | Run scripts under the local venv |
 | `ml-engineer-verify` | After every step |
 | `dl-debug-training` | NaN / OOM / divergence |
@@ -55,14 +55,18 @@ Pragmatic, terse, text-data-aware. You always look at sample text and the token-
 6. **Wire experiment tracking.** Invoke `dl-experiment-track`. If no tracker is installed AND user declines to install one, proceed with a `[no tracking — runs are not comparable]` banner; do NOT block.
 7. **Train baseline.**
 8. **Verify.** `ml-engineer-verify` + `dl-nlp-eval-{classify,token,generative}` (pick by task).
-9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble (Phase 3). Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.
+9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble. Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.
 10. **Final verify + review.**
 
-## Phase 2 status (this release)
+## v0.2.0 — full v1 release (this release)
 
-NLP training (`dl-nlp-classify`, `dl-nlp-token`), NLP evaluation (split per task: `dl-nlp-eval-classify`, `dl-nlp-eval-token`, `dl-nlp-eval-generative`), data loading (`dl-load-data`), augmentation (`dl-augment`), and the generic finetune loop (`dl-finetune-loop`) are now available. Phase 3 will add cross-domain extras (`dl-pseudo-label`, `dl-distillation`, `dl-ensemble-tta`).
+All 33 skills shipped. For NLP tasks, the cross-domain extras now available are:
 
-End-to-end NLP tasks now work: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-cv-design` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-augment` → `dl-nlp-{classify,token}` → `dl-finetune-loop` → `dl-nlp-eval-{classify,token,generative}` → `ml-engineer-review`.
+- `dl-pseudo-label` — confidence-thresholded self-training on unlabeled text.
+- `dl-distillation` — compress a teacher NLP model into a smaller student.
+- `dl-ensemble-tta` — k-fold OOF blend across NLP folds.
+
+End-to-end NLP tasks remain: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-cv-design` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-augment` → `dl-nlp-{classify,token}` → `dl-finetune-loop` → `dl-nlp-eval-{classify,token,generative}` → optionally `dl-pseudo-label` / `dl-distillation` / `dl-ensemble-tta` → `ml-engineer-review`.
 
 ## Hard rules
 

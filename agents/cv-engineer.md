@@ -28,15 +28,15 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
 | `dl-cv-eval-classify` | After classification training — top-k accuracy / per-class F1 / confusion matrix / ECE |
 | `dl-cv-eval-detect` | After detection training — COCO-style mAP via pycocotools |
 | `dl-cv-eval-segment` | After segmentation training — mIoU / Dice / HD95 / boundary F1 |
-| `dl-cv-pretrain` | (Phase 3) Self-supervised pretraining (SimCLR / DINO / MAE) — rare |
+| `dl-cv-pretrain` | Self-supervised pretraining (SimCLR / DINO / MAE) — rare |
 | `dl-finetune-loop` | Generic HF Trainer / Accelerate boilerplate with mixed precision |
 | `dl-experiment-track` | Wire wandb / mlflow / aim before training |
 | `dl-checkpoint` | Save / resume logic for runs >30 min |
 | `dl-distributed` | (When needed) Single-GPU / FSDP2 / DeepSpeed selector |
 | `dl-remote-execute` | Run on Modal / RunPod / Vast / Lambda / Beam / SSH / Colab |
-| `dl-pseudo-label` | (Phase 3) Confidence-thresholded self-training |
-| `dl-distillation` | (Phase 3) Logit / feature distillation |
-| `dl-ensemble-tta` | (Phase 3) K-fold OOF blend, rank-average, snapshot, TTA |
+| `dl-pseudo-label` | Confidence-thresholded self-training |
+| `dl-distillation` | Logit / feature distillation |
+| `dl-ensemble-tta` | K-fold OOF blend, rank-average, snapshot, TTA |
 | `ml-engineer-execute` | Run scripts under the local venv |
 | `ml-engineer-verify` | After every executed step (per-step evidence) |
 | `dl-debug-training` | When training produces NaN / OOM / divergence / degenerate output |
@@ -59,7 +59,7 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
 8. **Wire experiment tracking.** Invoke `dl-experiment-track`. If the user has no tracker installed AND declines to install one, proceed with a banner `[no tracking — runs are not comparable]` and skip the tracking step. Do NOT block the loop on this.
 9. **Train baseline.** Invoke the relevant CV training skill which uses `dl-finetune-loop`.
 10. **Verify.** `ml-engineer-verify` + `dl-cv-eval-{classify,detect,segment}` (pick by task).
-11. **Iterate ladder.** (Phase 3 skills)
+11. **Iterate ladder.**
     - Pretrain on unlabeled? → `dl-cv-pretrain` (rare).
     - Pseudo-label? → `dl-pseudo-label`.
     - Distill? → `dl-distillation`.
@@ -68,11 +68,16 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
 
 Per-step error handling, debug retry cap, and verification discipline are inherited from `ml-engineer.md`. See that file for the full iron rules.
 
-## Phase 2 status (this release)
+## v0.2.0 — full v1 release (this release)
 
-CV training (`dl-cv-classify`, `dl-cv-detect`, `dl-cv-segment`), CV evaluation (split per task: `dl-cv-eval-classify`, `dl-cv-eval-detect`, `dl-cv-eval-segment`), data loading (`dl-load-data`), augmentation (`dl-augment`), and the generic finetune loop (`dl-finetune-loop`) are now available. Phase 3 will add cross-domain extras (`dl-pseudo-label`, `dl-distillation`, `dl-cv-pretrain`, `dl-ensemble-tta`).
+All 33 skills shipped — Phase 1 (infrastructure), Phase 2 (CV/NLP breadth), Phase 3 (LLM/VLM/cross-domain extras). For CV tasks specifically, the cross-domain extras now available are:
 
-End-to-end CV tasks now work: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-cv-design` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-augment` → `dl-cv-{classify,detect,segment}` → `dl-finetune-loop` → `dl-cv-eval-{classify,detect,segment}` → `ml-engineer-review`.
+- `dl-pseudo-label` — confidence-thresholded self-training when you have unlabeled images.
+- `dl-distillation` — compress a teacher CV model into a smaller student.
+- `dl-ensemble-tta` — k-fold OOF blend + test-time augmentation for CV.
+- `dl-cv-pretrain` — DINO/SimCLR/MAE self-supervised pretraining (skip-by-default; only when timm pretrained underperforms on a specialty domain).
+
+End-to-end CV tasks remain: `dl-prior-art` → `dl-detect-env` → `ml-engineer-plan` → `ml-engineer-cv-design` → `ml-engineer-pick-metric` → `dl-load-data` → `dl-augment` → `dl-cv-{classify,detect,segment}` → `dl-finetune-loop` → `dl-cv-eval-{classify,detect,segment}` → optionally `dl-pseudo-label` / `dl-distillation` / `dl-ensemble-tta` → `ml-engineer-review`.
 
 ## Hard rules
 
