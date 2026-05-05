@@ -60,7 +60,7 @@ Save to `<workdir>/metrics.json`:
   "span_f1_macro": 0.XXX,
   "span_precision": 0.XXX,
   "span_recall": 0.XXX,
-  "token_f1": 0.XXX,
+  "token_accuracy": 0.XXX,
   "exact_match": 0.XXX,
   "per_entity_type": {"PER": {"precision": ..., "recall": ..., "f1": ..., "support": N}, ...},
   "worst_entity_types": [{"type": "X", "f1": 0.XX, "support": N}, ...],
@@ -144,7 +144,8 @@ def extract_entities(tags: list[str], tokens: list[str]) -> list[tuple]:
 
 def error_analysis(predictions: list[list[str]], labels: list[list[str]],
                     tokens: list[list[str]], n_examples: int = 5) -> dict:
-    """Find FP, FN, and boundary-mismatch entities."""
+    """Find FP, FN, and boundary-mismatch entities. Handles multiple same-type entities per sentence."""
+    from collections import defaultdict
     false_positives = []
     false_negatives = []
     boundary_mismatches = []
@@ -152,17 +153,20 @@ def error_analysis(predictions: list[list[str]], labels: list[list[str]],
     for sent_idx in range(len(predictions)):
         pred_ents = set(extract_entities(predictions[sent_idx], tokens[sent_idx]))
         gold_ents = set(extract_entities(labels[sent_idx], tokens[sent_idx]))
-        gold_ent_types = {e[0]: (e[1], e[2]) for e in gold_ents}
-        pred_ent_types = {e[0]: (e[1], e[2]) for e in pred_ents}
+
+        # Group by entity type as a SET of (start, end) tuples — preserves multiple entities of the same type.
+        gold_spans_by_type = defaultdict(set)
+        for e in gold_ents:
+            gold_spans_by_type[e[0]].add((e[1], e[2]))
 
         for e in pred_ents - gold_ents:
-            if e[0] in gold_ent_types and gold_ent_types[e[0]] != (e[1], e[2]):
-                boundary_mismatches.append((sent_idx, e, gold_ent_types[e[0]]))
+            if e[0] in gold_spans_by_type and (e[1], e[2]) not in gold_spans_by_type[e[0]]:
+                # type matches a gold entity, but no gold span has the same boundaries
+                boundary_mismatches.append((sent_idx, e, sorted(gold_spans_by_type[e[0]])))
             else:
                 false_positives.append((sent_idx, e))
         for e in gold_ents - pred_ents:
-            if e[0] not in pred_ent_types:
-                false_negatives.append((sent_idx, e))
+            false_negatives.append((sent_idx, e))
 
     return {
         "false_positive_examples": false_positives[:n_examples],

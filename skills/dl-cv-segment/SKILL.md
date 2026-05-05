@@ -149,14 +149,40 @@ def build_unet(encoder: str = "resnet34", encoder_weights: str = "imagenet",
 
 
 def build_loss(num_classes: int, use_dice: bool = True, focal: bool = False):
-    """Combo loss: CE (or BCE for binary) + Dice; switch to Focal for heavy imbalance."""
+    """Combo loss matching the Decision rules.
+
+    - focal=True: FocalLoss alone (multiclass or binary).
+    - num_classes == 1 and use_dice: BCE + Dice combo.
+    - num_classes == 1 and not use_dice: BCEWithLogitsLoss alone.
+    - num_classes > 1 and use_dice: CrossEntropy + Dice combo.
+    - num_classes > 1 and not use_dice: CrossEntropy alone.
+
+    Returns a callable `loss(pred, target) -> tensor`. Never returns None.
+    """
+    import torch.nn as nn
     import segmentation_models_pytorch as smp
+
     if focal:
         return smp.losses.FocalLoss(mode="multiclass" if num_classes > 1 else "binary")
+
     if num_classes == 1:
-        bce_dice = smp.losses.DiceLoss(mode="binary")
-        return bce_dice
-    return smp.losses.DiceLoss(mode="multiclass") if use_dice else None
+        bce = nn.BCEWithLogitsLoss()
+        if not use_dice:
+            return bce
+        dice = smp.losses.DiceLoss(mode="binary")
+
+        def combo(pred, target):
+            return bce(pred, target.float()) + dice(pred, target)
+        return combo
+
+    ce = nn.CrossEntropyLoss()
+    if not use_dice:
+        return ce
+    dice = smp.losses.DiceLoss(mode="multiclass")
+
+    def combo(pred, target):
+        return ce(pred, target) + dice(pred, target)
+    return combo
 ```
 
 ### `<workdir>/src/_model_cv_segment_hf.py` (HF semantic segmentation)

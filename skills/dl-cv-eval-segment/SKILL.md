@@ -155,14 +155,24 @@ def compute_hd95(preds: np.ndarray, gt: np.ndarray, num_classes: int,
 
 def compute_boundary_f1(preds: np.ndarray, gt: np.ndarray, num_classes: int,
                         tolerance_px: int = 2) -> float:
-    """Boundary F1 — F1 over the contour pixels within tolerance_px."""
-    from scipy.ndimage import binary_dilation, distance_transform_edt
+    """Boundary F1 — F1 over contour pixels within tolerance_px.
+
+    Per-image-per-class scoring rules:
+    - Both pred and gt empty: skip (no contribution to mean).
+    - Exactly one empty: contributes 0.0 (false alarm or missed entity).
+    - Both non-empty with non-zero boundary: standard precision/recall F1.
+    """
+    from scipy.ndimage import binary_dilation
     f1_scores = []
     for c in range(num_classes):
         for i in range(len(preds)):
             p = (preds[i] == c).astype(np.uint8)
             g = (gt[i] == c).astype(np.uint8)
-            if p.sum() == 0 and g.sum() == 0:
+            p_has, g_has = p.sum() > 0, g.sum() > 0
+            if not p_has and not g_has:
+                continue  # neither side has this class in this image; skip
+            if not p_has or not g_has:
+                f1_scores.append(0.0)  # one-sided absence = 0
                 continue
             p_boundary = p ^ binary_dilation(p, iterations=1)
             g_boundary = g ^ binary_dilation(g, iterations=1)
@@ -175,8 +185,7 @@ def compute_boundary_f1(preds: np.ndarray, gt: np.ndarray, num_classes: int,
             tp_g = np.logical_and(g_boundary, p_dilated).sum()
             precision = tp_p / p_boundary.sum() if p_boundary.sum() > 0 else 0
             recall = tp_g / g_boundary.sum() if g_boundary.sum() > 0 else 0
-            if precision + recall > 0:
-                f1_scores.append(2 * precision * recall / (precision + recall))
+            f1_scores.append(2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0)
     return float(np.mean(f1_scores)) if f1_scores else 0.0
 
 
@@ -201,8 +210,18 @@ def visualize_predictions(images: list, gt_masks: np.ndarray, pred_masks: np.nda
 
 
 def save_metrics(metrics: dict):
+    """Serialize, replacing NaN floats with null (json doesn't allow NaN literals)."""
+    import math
+    def sanitize(v):
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        if isinstance(v, dict):
+            return {k: sanitize(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [sanitize(x) for x in v]
+        return v
     p = WORKDIR / "metrics.json"
-    p.write_text(json.dumps(metrics, indent=2))
+    p.write_text(json.dumps(sanitize(metrics), indent=2))
     print(f"Metrics saved to {p}")
 ```
 

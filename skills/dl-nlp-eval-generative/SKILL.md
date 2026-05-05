@@ -114,13 +114,22 @@ def compute_bleu(predictions: list[str], references: list[list[str]]) -> dict:
     return {"bleu": float(bleu.score), "chrf": float(chrf.score)}
 
 
-def compute_bertscore(predictions: list[str], references: list[str], lang: str = "en") -> dict:
-    """BERTScore F1 averaged over the eval set."""
+def compute_bertscore(predictions: list[str], references: list[str],
+                      lang: str = "en", model_type: str | None = None) -> dict:
+    """BERTScore F1 averaged over the eval set.
+
+    Pass `model_type` (e.g. 'roberta-large', 'microsoft/deberta-xlarge-mnli') to pin the
+    embedding model — defaults vary across `bert_score` releases and produce non-comparable
+    scores across versions.
+    """
     try:
         from bert_score import score
     except ImportError:
         return {"bertscore_f1": float("nan")}
-    P, R, F = score(predictions, references, lang=lang, verbose=False)
+    kwargs = {"lang": lang, "verbose": False}
+    if model_type is not None:
+        kwargs["model_type"] = model_type
+    P, R, F = score(predictions, references, **kwargs)
     return {
         "bertscore_precision": float(P.mean()),
         "bertscore_recall": float(R.mean()),
@@ -129,7 +138,10 @@ def compute_bertscore(predictions: list[str], references: list[str], lang: str =
 
 
 def compute_perplexity(model_id: str, texts: list[str], batch_size: int = 8) -> float:
-    """Perplexity of `texts` under `model_id` (e.g., 'gpt2' as a reference LM)."""
+    """Perplexity of `texts` under `model_id` (e.g., 'gpt2' as a reference LM).
+
+    NLL is summed over actual token counts; perplexity = exp(total_NLL / total_tokens).
+    """
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -141,14 +153,17 @@ def compute_perplexity(model_id: str, texts: list[str], batch_size: int = 8) -> 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-    nlls = []
+    total_nll = 0.0
+    total_tokens = 0
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
         enc = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512).to(device)
+        seq_len = enc["input_ids"].shape[1]
         with torch.no_grad():
             out = model(**enc, labels=enc["input_ids"])
-        nlls.append(float(out.loss) * enc["input_ids"].shape[1])
-    return float(np.exp(sum(nlls) / sum(enc["input_ids"].shape[1] for _ in nlls)))
+        total_nll += float(out.loss) * seq_len
+        total_tokens += seq_len
+    return float(np.exp(total_nll / max(total_tokens, 1)))
 
 
 def best_worst_examples(predictions: list[str], references: list[str],
