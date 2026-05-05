@@ -137,17 +137,21 @@ def compute_bertscore(predictions: list[str], references: list[str],
     }
 
 
-def compute_perplexity(model_id: str, texts: list[str], batch_size: int = 8) -> float:
+def compute_perplexity(model_id: str, texts: list[str]) -> float:
     """Perplexity of `texts` under `model_id` (e.g., 'gpt2' as a reference LM).
 
-    NLL is summed over actual token counts; perplexity = exp(total_NLL / total_tokens).
+    NOTE: this implementation uses batch_size=1 (no padding). Computing perplexity
+    correctly with padding requires a per-position attention mask on the loss; if
+    you need batch_size>1 for speed, generate the masked-NLL variant — invoke
+    ml-engineer-research for the current HF reference implementation.
+
+    perplexity = exp(total_NLL / total_tokens) where total_tokens is the actual
+    non-special-token count.
     """
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_id)
     model.eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -155,14 +159,17 @@ def compute_perplexity(model_id: str, texts: list[str], batch_size: int = 8) -> 
 
     total_nll = 0.0
     total_tokens = 0
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
-        enc = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=512).to(device)
+    for text in texts:
+        enc = tokenizer(text, return_tensors="pt", truncation=True, max_length=512).to(device)
         seq_len = enc["input_ids"].shape[1]
+        if seq_len < 2:  # CrossEntropy on causal LM needs at least 2 tokens
+            continue
         with torch.no_grad():
             out = model(**enc, labels=enc["input_ids"])
-        total_nll += float(out.loss) * seq_len
-        total_tokens += seq_len
+        # out.loss is mean CE over (seq_len - 1) target positions (causal LM shifts).
+        n_target_tokens = seq_len - 1
+        total_nll += float(out.loss) * n_target_tokens
+        total_tokens += n_target_tokens
     return float(np.exp(total_nll / max(total_tokens, 1)))
 
 

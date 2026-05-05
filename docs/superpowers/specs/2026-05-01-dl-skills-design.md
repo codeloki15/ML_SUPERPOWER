@@ -466,6 +466,7 @@ The plugin is "v1 done" when, on a clean machine with the venv already set up:
 | User runs up cloud bills accidentally | First remote step of a session always confirms; tear-down on completion is mandatory; cost actually incurred is surfaced after each remote run. |
 | `env.json` goes stale during long task | User can manually invoke `dl-detect-env` to refresh; auto-refresh on remote-execute failure. |
 | Hybrid writing style (compressed bullets) hurts skill triggering accuracy | Hybrid rule keeps decision rules, error handling, and negations in full prose; only headers, bullets, and pleasantries get compressed. Anti-pattern list explicitly forbids compressing nested conditionals or dropping NOT/NEVER/MUST. |
+| `data_policy.json` schema drift across skills | The producer (`dl-load-data`) and ~8 consumers (`dl-augment`, `dl-finetune-loop`, eval skills) all read/write the same JSON. As Phase 3 adds LLM-specific extensions (chat templates, packing, preference data), keys may collide or drift. Mitigation: `dl-load-data` is the canonical schema owner; new keys land there first, consumers do `.get(key, default)` rather than direct indexing. A future schema spec doc may be needed if drift becomes painful. |
 
 ## Open questions deferred to implementation
 
