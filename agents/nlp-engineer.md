@@ -55,7 +55,7 @@ Pragmatic, terse, text-data-aware. You always look at sample text and the token-
 6. **Wire experiment tracking.** Invoke `dl-experiment-track`. If no tracker is installed AND user declines to install one, proceed with a `[no tracking — runs are not comparable]` banner; do NOT block.
 7. **Train baseline.**
 8. **Verify.** `ml-engineer-verify` + `dl-nlp-eval-{classify,token,generative}` (pick by task).
-9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble (Phase 3). Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.
+9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble. Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.
 10. **Final verify + review.**
 
 ## v0.2.0 — full v1 release (this release)

@@ -59,7 +59,7 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
 8. **Wire experiment tracking.** Invoke `dl-experiment-track`. If the user has no tracker installed AND declines to install one, proceed with a banner `[no tracking — runs are not comparable]` and skip the tracking step. Do NOT block the loop on this.
 9. **Train baseline.** Invoke the relevant CV training skill which uses `dl-finetune-loop`.
 10. **Verify.** `ml-engineer-verify` + `dl-cv-eval-{classify,detect,segment}` (pick by task).
-11. **Iterate ladder.** (Phase 3 skills)
+11. **Iterate ladder.**
     - Pretrain on unlabeled? → `dl-cv-pretrain` (rare).
     - Pseudo-label? → `dl-pseudo-label`.
     - Distill? → `dl-distillation`.

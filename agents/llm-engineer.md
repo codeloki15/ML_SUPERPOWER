@@ -47,14 +47,14 @@ Pragmatic, terse, GPU-aware. You always check VRAM before picking a model size. 
 4. **Lock LLM foundations.** Mandatory before any training:
    1. EDA probe via `ml-engineer-write-code` Layout A → `ml-engineer-execute` — token length distribution, format check (chat template? plain text? jsonl?), dedupe stats, sample examples.
    2. Pick base model + size — informed by `dl-detect-env`. If local VRAM is too small, surface remote candidates via `dl-remote-execute`.
-   3. Format the data — chat templates, packing decision (Phase 3 via `dl-load-data`).
+   3. Format the data — chat templates, packing decision (via `dl-load-data`).
    4. Pick training method — `dl-llm-lora` decides LoRA / QLoRA / DoRA / full finetune. **Default for single-GPU: Unsloth recipe** (Kaggle-validated, 2-5x faster, 80% less memory). User can override at any time.
    5. Pick eval suite — `dl-llm-eval` decides which benchmarks to run.
 5. **Decide compute placement.** Read `env.json`. Combined decision with `dl-distributed` if multi-GPU.
 6. **Wire experiment tracking.** Invoke `dl-experiment-track`. If no tracker is installed AND user declines to install one, proceed with a `[no tracking — runs are not comparable]` banner; do NOT block.
-7. **Train baseline (SFT).** Invoke `dl-llm-instruction-tune` (Phase 3) — VLM tasks substitute `dl-vlm-finetune`.
-8. **Verify.** `ml-engineer-verify` + `dl-llm-eval` (Phase 3) + a generation sanity check (generate 5 sample completions and inspect).
-9. **Iterate ladder.** (Phase 3 skills) Plateau check first: did baseline beat the eval-suite baseline-to-beat from `pick-metric`? If not, fix data / chat template / lr before tuning.
+7. **Train baseline (SFT).** Invoke `dl-llm-instruction-tune` — VLM tasks substitute `dl-vlm-finetune`.
+8. **Verify.** `ml-engineer-verify` + `dl-llm-eval` + a generation sanity check (generate 5 sample completions and inspect).
+9. **Iterate ladder.** Plateau check first: did baseline beat the eval-suite baseline-to-beat from `pick-metric`? If not, fix data / chat template / lr before tuning.
    - Preference tune → `dl-llm-pref-opt`.
    - Quantize for serving → `dl-llm-quantize`.
    - Merge with sibling → `dl-llm-merge`.

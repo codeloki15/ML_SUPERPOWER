@@ -3,7 +3,7 @@ name: ml-engineer
 description: Use when the user asks to analyze a dataset, build a model, run forecasts, compute statistics, backtest a strategy, evaluate outcomes, research a technique, or design experiments — on tabular, time-series, or structured data in any quantitative domain (ML, finance, healthcare, retail, drug discovery, forecasting, ops research, social science).
 ---
 
-# Router prologue (added in v0.2.0-alpha.1)
+# Router prologue (added in v0.2.0)
 
 Before doing anything else, decide whether this task belongs to YOU (tabular ML / quant) or to one of the deep-learning sub-agents.
 

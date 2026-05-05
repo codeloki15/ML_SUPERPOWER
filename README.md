@@ -143,7 +143,10 @@ Each sub-agent runs the same disciplined loop as the tabular orchestrator (resea
 
 **Prior-art lookup.** `dl-prior-art` is a Tier 1 shared infrastructure skill. Useful for any new problem (tabular or DL) — invoke it early to surface what Kaggle winners and HF cookbook authors actually did on similar problems. Returns a structured playbook (similar problems found / what winners consistently do / where winners disagree / what winners tried and dropped / recommended starting playbook).
 
-See `docs/superpowers/specs/2026-05-01-dl-skills-design.md` for the full design and `docs/superpowers/plans/2026-05-02-dl-skills-phase-1-foundation.md` for the Phase 1 implementation plan.
+See `docs/superpowers/specs/2026-05-01-dl-skills-design.md` for the full design. Implementation plans, one per phase:
+- Phase 1 (foundation): `docs/superpowers/plans/2026-05-02-dl-skills-phase-1-foundation.md`
+- Phase 2 (CV + NLP breadth): `docs/superpowers/plans/2026-05-03-dl-skills-phase-2-cv-nlp.md`
+- Phase 3 (LLM + VLM + ensembling): `docs/superpowers/plans/2026-05-03-dl-skills-phase-3-llm-vlm.md`
 
 ## Venv
 
