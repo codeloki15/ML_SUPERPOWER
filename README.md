@@ -7,29 +7,26 @@ A local-only data-science / ML / quant assistant for Claude Code. Plans, researc
 ```
 ML_Engineer/
 ├── .claude-plugin/
-│   └── plugin.json
+│   ├── plugin.json
+│   └── marketplace.json
 ├── agents/
-│   └── ml-engineer.md              # orchestrator subagent — drives the loop
+│   ├── ml-engineer.md              # router + tabular orchestrator
+│   ├── cv-engineer.md              # vision sub-orchestrator
+│   ├── nlp-engineer.md             # NLP encoder sub-orchestrator
+│   └── llm-engineer.md             # LLM/VLM sub-orchestrator
 ├── skills/
-│   ├── ml-engineer-research/             # WebSearch + WebFetch, returns conclusions, no citations
-│   ├── ml-engineer-decide/               # evidence → recommendation with approval gate
-│   ├── ml-engineer-hypothesis/           # falsifiable, testable hypotheses
-│   ├── ml-engineer-plan/                 # checkbox TODO plan
-│   ├── ml-engineer-cv-design/            # picks CV scheme by data shape (Stratified / Group / walk-forward / binned-stratified)
-│   ├── ml-engineer-pick-metric/          # locks evaluation metric before training
-│   ├── ml-engineer-encode-categoricals/  # label / one-hot / target / embedding, fit per fold
-│   ├── ml-engineer-engineer-features/    # date / aggregation / polynomial / binning / log / imputation
-│   ├── ml-engineer-write-code/           # Python scripts; Layout A (one-off) or Layout B (project-style for training)
-│   ├── ml-engineer-execute/              # runs scripts under the local venv
-│   │   └── scripts/
-│   │       ├── setup_venv.sh
-│   │       ├── run.sh
-│   │       └── pip_install.sh
-│   ├── ml-engineer-verify/               # per-step verification (Iron Law: no completion claim without fresh evidence)
-│   ├── ml-engineer-tune-hyperparams/     # hand-tune → random search → Bayesian, OOF-mean optimized
-│   ├── ml-engineer-ensemble/             # simple / rank / weighted average and stacking on the same folds
-│   ├── ml-engineer-debug/                # 4-phase root-cause debugging, 3-failures escape hatch
-│   └── ml-engineer-review/               # end-of-task critique, severity-tagged findings
+│   ├── ml-engineer-*               # 15 tabular/quant skills (unchanged from v0.1.0)
+│   └── dl-*                        # NEW deep-learning skills (Phase 1 ships 7, total target 29)
+│       ├── dl-detect-env/          # probes local compute + remote handoffs, writes env.json
+│       ├── dl-remote-execute/      # 7-provider dispatcher (Modal/RunPod/Vast/Lambda/Beam/SSH/Colab)
+│       ├── dl-experiment-track/    # wandb / mlflow / aim wiring
+│       ├── dl-checkpoint/          # save / resume / FSDP2-aware sharding
+│       ├── dl-distributed/         # single-GPU vs FSDP2 vs DeepSpeed selector
+│       ├── dl-debug-training/      # NaN / OOM / divergence root-cause triage
+│       └── dl-prior-art/           # Kaggle winner / HF cookbook lookup for similar problems
+├── docs/superpowers/
+│   ├── specs/                      # design specs (committed before implementation)
+│   └── plans/                      # implementation plans (per-phase)
 └── README.md
 ```
 
@@ -65,6 +62,34 @@ Per-step:
 4. On success, `ml-engineer-verify` runs a separate check via a different code path — exit-0 is not verification.
 
 Before declaring the whole task complete, `ml-engineer-review` runs a fresh-eyes critique covering plan-vs-result drift, methodological soundness (walk-forward CV, transaction costs, multiple-testing correction, scaffold splits, assumption checks), reproducibility, and honesty of the result.
+
+## Deep learning support (v0.2.0-alpha.1, Phase 1)
+
+Beyond tabular ML, the `ml-engineer` agent now routes deep-learning tasks (CV, NLP, LLM, VLM) to dedicated sub-agents:
+
+- `cv-engineer` — image classification, detection, segmentation
+- `nlp-engineer` — encoder fine-tuning (classification, NER, QA, embeddings)
+- `llm-engineer` — LLM and VLM finetuning, preference tuning, eval, merge, quantize, serve
+
+Each sub-agent runs the same disciplined loop as the tabular orchestrator (research → decide → plan → write → execute → verify → debug → review) with domain-appropriate skills.
+
+**Phase 1 status (this release):** Seven shared infrastructure skills shipped:
+
+- `dl-detect-env` — probe compute fleet (CPU/MPS/CUDA + Modal/RunPod/Vast/Lambda/Beam/SSH/Colab handoffs) and write `<workdir>/env.json`.
+- `dl-remote-execute` — dispatcher across 7 providers with "ask once, continue silently" model and per-step cost surfacing.
+- `dl-experiment-track` — wire wandb / mlflow / aim before training starts (with auth verification and HF Trainer integration), so no run is untracked.
+- `dl-checkpoint` — save / resume with FSDP2-aware sharding, PEFT adapter-only saves, ephemeral-remote persistence hooks.
+- `dl-distributed` — pick single-GPU vs FSDP2 vs DeepSpeed ZeRO-3 by VRAM budget.
+- `dl-debug-training` — 4-phase root-cause triage for NaN / OOM / divergence / degenerate output, with 3-failure escape hatch.
+- `dl-prior-art` — search the web for Kaggle competition winners and HuggingFace cookbook posts on similar problems; return a structured "what did winners do" playbook.
+
+Domain-specific skills (CV/NLP/LLM/VLM training recipes) ship in Phases 2 and 3. Until then, sub-agents can route a DL task, set up the environment, run a prior-art lookup, hand off to a remote provider, and run a generic finetune script — but they cannot yet offer domain-specific recipes.
+
+**Remote execution.** `dl-detect-env` probes for configured remote providers; `dl-remote-execute` shows the user the top-3 candidates with cost + latency tradeoffs and runs the script on the chosen provider, fetching results back to the local workdir. The user picks once at the start of a remote chain; subsequent remote steps continue silently on the same provider until the user switches or the resource requirement changes.
+
+**Prior-art lookup.** `dl-prior-art` is a Tier 1 shared infrastructure skill. Useful for any new problem (tabular or DL) — invoke it early to surface what Kaggle winners and HF cookbook authors actually did on similar problems. Returns a structured playbook (similar problems found / what winners consistently do / where winners disagree / what winners tried and dropped / recommended starting playbook).
+
+See `docs/superpowers/specs/2026-05-01-dl-skills-design.md` for the full design and `docs/superpowers/plans/2026-05-02-dl-skills-phase-1-foundation.md` for the Phase 1 implementation plan.
 
 ## Venv
 
