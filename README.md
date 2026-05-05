@@ -80,7 +80,7 @@ Each sub-agent runs the same disciplined loop as the tabular orchestrator (resea
 - `dl-experiment-track` — wire wandb / mlflow / aim before training starts (with auth verification and HF Trainer integration), so no run is untracked.
 - `dl-checkpoint` — save / resume with FSDP2-aware sharding, PEFT adapter-only saves, ephemeral-remote persistence hooks.
 - `dl-distributed` — pick single-GPU vs FSDP2 vs DeepSpeed ZeRO-3 by VRAM budget.
-- `dl-debug-training` — 4-phase root-cause triage for NaN / OOM / divergence / degenerate output, with 3-failure escape hatch.
+- `dl-debug-training` — 5-phase root-cause triage for NaN / OOM / divergence / degenerate output (read failure → form hypotheses → probe → smallest fix → 3-failure escape hatch / pipeline audit).
 - `dl-prior-art` — search the web for Kaggle competition winners and HuggingFace cookbook posts on similar problems; return a structured "what did winners do" playbook.
 
 Domain-specific skills (CV/NLP/LLM/VLM training recipes) ship in Phases 2 and 3. Until then, sub-agents can route a DL task, set up the environment, run a prior-art lookup, hand off to a remote provider, and run a generic finetune script — but they cannot yet offer domain-specific recipes.

@@ -54,7 +54,7 @@ Pragmatic, terse, image-data-aware. You always look at sample images before mode
    4. Augmentation policy — `dl-augment` (Phase 2).
    5. Backbone family — `dl-cv-classify` | `dl-cv-detect` | `dl-cv-segment` (Phase 2).
 7. **Decide compute placement.** Read `env.json`. If local fits, use `ml-engineer-execute`. Else use `dl-remote-execute`.
-8. **Wire experiment tracking.** Invoke `dl-experiment-track`.
+8. **Wire experiment tracking.** Invoke `dl-experiment-track`. If the user has no tracker installed AND declines to install one, proceed with a banner `[no tracking — runs are not comparable]` and skip the tracking step. Do NOT block the loop on this.
 9. **Train baseline.** Invoke the relevant CV training skill (Phase 2) which uses `dl-finetune-loop`.
 10. **Verify.** `ml-engineer-verify` + `dl-cv-eval` (Phase 2).
 11. **Iterate ladder.** (Phase 3 skills)

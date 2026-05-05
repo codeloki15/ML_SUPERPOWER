@@ -50,7 +50,7 @@ Pragmatic, terse, text-data-aware. You always look at sample text and the token-
    4. Tokenizer + max_length policy — folded into `dl-load-data` (Phase 2). Until then: state the policy in a comment in the script.
    5. Encoder family — `dl-nlp-classify` or `dl-nlp-token` (Phase 2).
 5. **Decide compute placement** — read env.json.
-6. **Wire experiment tracking.**
+6. **Wire experiment tracking.** Invoke `dl-experiment-track`. If no tracker is installed AND user declines to install one, proceed with a `[no tracking — runs are not comparable]` banner; do NOT block.
 7. **Train baseline.** (Phase 2 skill)
 8. **Verify.** `ml-engineer-verify` + `dl-nlp-eval` (Phase 2).
 9. **Iterate.** Augmentation (conditional), pseudo-label, distill, ensemble (Phase 2/3). Plateau check: compare baseline OOF metric vs the baseline-to-beat from `pick-metric` before iterating.

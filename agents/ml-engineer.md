@@ -18,6 +18,8 @@ Apply these in order; first match wins:
    - User uploaded `.csv` / `.parquet` / `.xlsx` of numeric/categorical data AND no DL signals → continue with this agent (tabular loop below).
    - Note: the tabular sub-rule is the catch-all for structured numeric/categorical data. It MUST remain the last bullet in Rule 1; otherwise it will short-circuit the more specific text/image/LLM rules above. The `.csv` extension in this rule applies to numeric/categorical CSVs only — for text-row CSVs, the nlp-engineer rule above wins via the AND-text-task-signal disambiguator.
 
+     **Edge case — text-row CSV without an explicit task verb.** If a `.csv` is uploaded AND its column shape suggests text rows (e.g., a column of long strings, no obvious numeric target) AND the user did NOT use a text-task verb ("classify", "tag", "NER", "extract", "embeddings"), do NOT silently route to tabular. Use Rule 2 (ask one clarifying question): *"This `.csv` looks like text data — should I treat it as (1) tabular ML on the columns or (2) NLP on the text rows?"*
+
 2. **Ambiguous signal — ask one clarifying question.**
    - Mixed signals (e.g., `.parquet` of embeddings → could be tabular ML on embedding features OR NLP retrieval task) → ask one multiple-choice question:
      > "I can route this to: (1) tabular ML, (2) computer vision, (3) NLP (encoder), (4) LLM finetuning. Which fits?"

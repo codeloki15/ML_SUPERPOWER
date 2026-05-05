@@ -40,7 +40,7 @@ ML_Engineer/
 │   └── llm-engineer.md             (NEW — LLM/VLM sub-loop)
 ├── skills/
 │   ├── ml-engineer-*               (existing 15 — unchanged)
-│   └── dl-*                        (NEW 28 skills, see taxonomy below)
+│   └── dl-*                        (NEW 29 skills, see taxonomy below)
 └── README.md                       (updated)
 ```
 
@@ -65,8 +65,10 @@ Each sub-agent has its own loop, its own skills table (drawn from the shared 28-
 
 Skills fall into three ownership tiers:
 
-**Tier 1 — Shared infrastructure (6 skills, every sub-agent uses these):**
-- `dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`.
+**Tier 1 — Shared infrastructure (7 skills, every sub-agent uses these):**
+- `dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`, `dl-prior-art`.
+
+*Note: `dl-prior-art` was added to Tier 1 mid-Phase-1 in response to user feedback. It is a playbook-lookup primitive (search Kaggle winners + HF cookbook posts on similar problems) — distinct from `ml-engineer-research` which answers method-and-fact questions. The two are complementary; the orchestrator may invoke both for a new problem.*
 
 **Tier 2 — Cross-domain training/data utilities (7 skills, used by 2+ sub-agents):**
 - `dl-load-data`, `dl-augment`, `dl-finetune-loop`, `dl-pseudo-label`, `dl-distillation`, `dl-cv-pretrain` (only when CV needs it but the recipes generalize), `dl-ensemble-tta`.
@@ -79,11 +81,11 @@ Skills fall into three ownership tiers:
 
 Any skill is invokable from any sub-agent or from the tabular orchestrator when relevant. Tier labels describe typical use, not a hard restriction.
 
-## Skill taxonomy (28 skills)
+## Skill taxonomy (29 skills)
 
 Skills derived from late-2025 / early-2026 research on the HuggingFace ecosystem and Kaggle winner solutions.
 
-### Infrastructure / cross-cutting (6)
+### Infrastructure / cross-cutting (7)
 
 | # | Skill | Purpose |
 |---|---|---|
@@ -93,6 +95,7 @@ Skills derived from late-2025 / early-2026 research on the HuggingFace ecosystem
 | 4 | `dl-checkpoint` | Resume, sharded checkpointing, FSDP2 state-dict gotchas, `save_pretrained` vs raw state dict. |
 | 5 | `dl-distributed` | Decision skill: single-GPU (Unsloth) vs FSDP2 (Accelerate) vs DeepSpeed ZeRO-3. Launcher recipes per choice. |
 | 6 | `dl-debug-training` | NaN / loss-spike / grad-norm explosion / OOM root-cause triage. |
+| 7 | `dl-prior-art` | Web-search Kaggle competition winners + HuggingFace cookbook posts for problems similar to the user's task. Returns a structured playbook (similar problems found / what winners consistently do / where winners disagree / what winners tried and dropped / recommended starting playbook / confidence). Distinct from `ml-engineer-research` (which answers generic method-and-fact questions). |
 
 ### Data (3)
 
@@ -352,7 +355,7 @@ Each skill body has these sections, scaled to actual content (no fixed line cap)
 8. **Hard constraints.** Skill-specific rules — what NOT to do.
 9. **Output checklist.** Self-check the skill runs before returning.
 
-### Content rules across all 28 skills
+### Content rules across all 29 skills
 
 - **No baked-in version numbers.** "Use the latest stable HF transformers" — never "use transformers==4.46". Version pinning is the user's venv concern.
 - **No baked-in benchmark numbers.** VRAM math gets stale. Defer to `dl-detect-env` and runtime probes.
@@ -399,9 +402,9 @@ A skill is "v1 done" when:
 
 ## Implementation phasing
 
-### Phase 1 — Foundation (6 skills + router + 3 sub-agent shells)
+### Phase 1 — Foundation (7 skills + router + 3 sub-agent shells)
 
-- All 6 infra skills: `dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`.
+- All 7 infra skills: `dl-detect-env`, `dl-remote-execute`, `dl-experiment-track`, `dl-checkpoint`, `dl-distributed`, `dl-debug-training`, `dl-prior-art`.
 - Router prologue added to `ml-engineer.md`.
 - Three sub-agent shells (`cv-engineer.md`, `nlp-engineer.md`, `llm-engineer.md`) — each has the loop documented but only references infra skills + 1 placeholder domain skill.
 - Plugin version bump to `0.2.0-alpha.1`.
