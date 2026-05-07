@@ -16,7 +16,7 @@ This skill captures what the user told the engine + what can be inferred from th
 ## When to invoke
 
 - First action after the `research-engine` agent is dispatched, before any other `re-*` skill.
-- Re-invoked by `re-zoom-out` with an explicit instruction to change the framing (different metric, different unit of analysis, different decomposition).
+- Re-invoked by `re-zoom-out` which passes two arguments: `reframe_axis` ∈ `{metric, unit_of_analysis, decomposition, data_slice}` and a one-line `reframe_reason`. Apply the axis to override the relevant Step 2 / Step 5 fields, preserve all other dossier sections (especially `## Already known to work` / `## Already known to fail` from Step 4), and append a `## Re-framed at iter <N>` section to `narrative.md` (do not overwrite).
 
 ## When NOT to invoke
 
@@ -39,7 +39,17 @@ Identify:
 
 ### Step 3 — Probe the data shape
 
-If the user attached data, run a Layout-A EDA probe through `ml-engineer-write-code` → `ml-engineer-execute` to get rows / columns / modality / size on disk / dtype distribution / class balance / known quirks. The probe is mandatory; do not write the dossier without it. The probe's output goes into the `## Data shape` section as one paragraph (not raw output).
+If the user attached data, run an EDA probe via `ml-engineer-write-code` → `ml-engineer-execute`. The probe must write `<workdir>/research_engine/data_probe.json` with these keys:
+
+- `rows` (int) — number of rows / examples / images.
+- `cols` (int or null) — number of columns for tabular; null for image / text.
+- `modality` (string) — one of `tabular`, `text`, `image`, `audio`, `video`, `mixed`.
+- `size_bytes` (int) — total dataset size on disk.
+- `dtype_hist` (object) — for tabular: column-dtype counts (e.g., `{"int64": 4, "float64": 7, "object": 3}`). For image: `{"image": <count>}`. For text: `{"text": <count>}`.
+- `class_balance` (object or null) — label-count map if a label column exists; null otherwise.
+- `quirks` (array of strings) — any oddities the probe noticed (missing values >5%, extreme outliers, mixed encodings, duplicate rows, ID-like columns, etc.).
+
+The probe is mandatory. The dossier's `## Data shape` paragraph must summarize the probe's output in one paragraph (not paste raw JSON).
 
 If the user did not attach data, mark the section `pending — first iteration will probe the user-provided source`.
 
@@ -68,7 +78,7 @@ Use the schema in `docs/superpowers/specs/research-engine-workdir-schema.md` exa
 
 If invoked at engine start, also create:
 - `status.json` with `state: initializing`, `current_iter: 0`, `champion_iter: 0`, `champion_metric: null`, `spend_so_far_usd: 0`, `cost_ceiling_usd` from Step 5.
-- `narrative.md` with empty `## Ruled out`, `## Currently suspected`, `## Open questions`, `## Per-iteration log` sections and the header.
+- `narrative.md` with the header `# Narrative — <first sentence of problem statement>` followed by `**Started:** <ISO-8601 UTC>   **Last updated:** <ISO-8601 UTC>   **Champion:** none yet`, then the four empty sections `## Ruled out`, `## Currently suspected`, `## Open questions`, `## Per-iteration log`.
 
 If invoked by `re-zoom-out`, do NOT overwrite `narrative.md` — append a `## Re-framed at iter <N>` section to the existing narrative explaining what changed in the framing.
 
@@ -85,6 +95,18 @@ DATA SHAPE: <one-line summary>
 COST CEILING: $<value>
 NEXT: re-mine-literature
 ```
+
+## Verification gates
+
+Before returning to the engine, confirm:
+
+- [ ] `<workdir>/research_engine/dossier.md` exists and contains all six required sections: Problem statement, Metric, Data shape, Already known to work, Already known to fail, Stop criteria.
+- [ ] `<workdir>/research_engine/status.json` exists, parses as valid JSON, and has `state: "initializing"`, `current_iter: 0`, `cost_ceiling_usd: <number>`. (Skip on re-zoom-out re-invocation — status.json already exists.)
+- [ ] `<workdir>/research_engine/narrative.md` exists with the header line and four empty sections. (Skip on re-zoom-out re-invocation — narrative.md is appended to, not recreated.)
+- [ ] If a data probe was run, `<workdir>/research_engine/data_probe.json` exists and parses as valid JSON with the seven required keys.
+- [ ] No section in dossier.md contains `TBD`, `TODO`, or empty content. Empty fields use `pending`, `unknown — engine will establish`, `none — push frontier as far as possible`, or `(none stated yet — narrative will accumulate as the engine runs)`.
+
+If any gate fails, do not return to the engine — fix and re-verify.
 
 ## Hard constraints
 
