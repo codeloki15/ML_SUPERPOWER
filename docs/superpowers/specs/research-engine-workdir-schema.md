@@ -190,6 +190,7 @@ One directory per executed experiment. Filled by the domain sub-agent's existing
 - `step_*.py` / `verify_*.py` — outputs of `ml-engineer-write-code` / `ml-engineer-verify`.
 - `results.json` — final metric, written by `ml-engineer-verify`. Required fields: `metric_name`, `metric_value`, `verified` (bool).
 - `narrative_delta.md` — markdown receipt for this iteration. Written by `re-update-narrative`. Required sections: `## Added to "Ruled out"`, `## Added to "Currently suspected"`, `## Removed from "Open questions"`, `## Hypotheses archived`, `## Champion changed?`. Each section may contain `(none)` if empty.
+- `selection_note.md` (optional) — markdown receipt written by `re-select-next` ONLY when a random tie-break occurred. Records the tied candidates and the random outcome. `re-update-narrative` folds this content into `narrative_delta.md` under a `## Selection note` section.
 
 ### `reading/<TS>.md`
 

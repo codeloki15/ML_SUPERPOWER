@@ -94,6 +94,7 @@ Tie-breaks (in order):
 ### Step 5 — Mark and emit
 
 - Update the chosen hypothesis's `status` to `running` in `hypotheses.jsonl` (write a new versioned record — append, do not overwrite).
+- Create the iteration directory `<workdir>/research_engine/iterations/<NNN>/` (zero-padded, NNN = current_iter+1) and write `iterations/<NNN>/hypothesis.json` containing the full chosen hypothesis record (the same JSON object that was just versioned in `hypotheses.jsonl`). This file is the source of truth for the iteration: `re-update-narrative` and `re-detect-plateau` read it. Without it, downstream skills cannot complete.
 - Update `status.json` with `next_action: dispatch_to_subagent`, `current_iter: <prev+1>`.
 - Determine the domain route from the dossier's data shape and the hypothesis's `concrete_change`. Routing rules (same as the existing router rules in `agents/ml-engineer.md`):
   - Image data (jpg/png/tif/bmp/webp/dcm/nii) OR vision model name → `cv-engineer`.
@@ -127,6 +128,7 @@ Before returning to the engine, confirm:
 - [ ] `iterations/<NNN>/` directory exists (create it as part of this step).
 - [ ] The domain route matches the routing rules in this skill's Step 5.
 - [ ] If a random tie-break occurred, the candidate's selection was logged with the reason in a note that `re-update-narrative` will fold into `narrative_delta.md` (write a `<workdir>/research_engine/iterations/<NNN>/selection_note.md` with the random-tie-break record).
+- [ ] `<workdir>/research_engine/iterations/<NNN>/hypothesis.json` exists and is valid JSON containing the full hypothesis record.
 
 If any gate fails, do not return to the engine — fix and re-verify.
 

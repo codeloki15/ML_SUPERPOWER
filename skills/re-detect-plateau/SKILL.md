@@ -104,9 +104,18 @@ Write to `status.json`:
 
 - `last_event_kind: plateau_check`
 - `last_event: <ISO-8601 UTC ts>`
-- `next_action: <continue | continue_but_diversify | zoom_out | stop_and_write>` (snake_case, matching schema)
+- `next_action`: translate the decision to the next skill name (the schema's `next_action` enum names skills, not decisions):
 
-Note the snake_case mapping: hyphenated decisions in the table above (`continue-but-diversify`, `zoom-out`, `stop-and-write`) are written to status.json as snake_case (`continue_but_diversify`, `zoom_out`, `stop_and_write`) for consistency with the schema's other enum fields.
+| Decision (Step 6) | `next_action` written to status.json |
+|---|---|
+| `continue` | `re_select_next` |
+| `continue-but-diversify` | `re_generate_hypotheses` |
+| `zoom-out` | `re_zoom_out` |
+| `stop-and-write` | `re_write_up` |
+
+This translation makes resume work: on resume, the engine reads `next_action` from `status.json` and dispatches to the named skill (mapping snake_case → kebab-case: `re_select_next` → `re-select-next`).
+
+Also store the decision itself in a separate field `last_plateau_decision` (free-form snake_case: `continue`, `continue_but_diversify`, `zoom_out`, `stop_and_write`) so reports / debugging can trace what was decided. This is a debug field; the engine's resume path uses `next_action`.
 
 ## Output format
 
@@ -126,12 +135,12 @@ Before returning to the engine, confirm:
 
 - [ ] K was computed from actual leaderboard cost data, not a hardcoded value.
 - [ ] At least K iterations were inspected (or `continue` was returned for insufficient history).
-- [ ] If the dossier had a numeric target AND it was reached, the user was asked exactly once and the answer was honored. The user is NOT re-asked on subsequent plateau checks (verify status.json.last_event_kind).
+- [ ] If the dossier had a numeric target AND it was reached, the user was asked exactly once and the answer was honored. The user is NOT re-asked on subsequent plateau checks (verify status.json.target_hit_resolved).
 - [ ] The narrative-plateau signal counted only non-`(none)` entries.
 - [ ] The metric-plateau signal handled null metric values correctly (skipped when computing range, counted in K).
 - [ ] The decision matches the table in Step 6 exactly. Do NOT invent a new decision category.
 - [ ] If two consecutive plateaus were detected, the decision is `stop-and-write`, not `zoom-out`.
-- [ ] `status.json` was updated with the snake_case `next_action` value.
+- [ ] `status.json` was updated with `next_action` set to the translated skill name (one of `re_select_next` / `re_generate_hypotheses` / `re_zoom_out` / `re_write_up`), AND `last_plateau_decision` was set to the original decision string.
 
 If any gate fails, do not return to the engine — fix and re-verify.
 
@@ -141,4 +150,4 @@ If any gate fails, do not return to the engine — fix and re-verify.
 - Plateau is computed from the narrative, NOT the metric alone. A metric-only plateau detector is a bug — it cannot escape local optima.
 - The "two consecutive plateaus → stop-and-write" rule prevents infinite zoom-out loops.
 - Target-hit asks the user exactly once per session. Subsequent plateau checks after a target-pass-through do not re-ask.
-- `status.json` enum values are snake_case; the human-facing decision strings in the output format are kebab-case for readability — keep both consistent with the schema doc and the engine's state machine.
+- `status.json.next_action` enum values are snake_case skill names from the schema's enum. The plateau decision strings (`continue`, `zoom_out`, etc.) live in `last_plateau_decision`. Do not put decision strings in `next_action` — they are not in the schema's enum and will break resume.

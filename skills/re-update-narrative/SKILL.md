@@ -87,6 +87,8 @@ Append a single record to `leaderboard.jsonl`:
 
 (Status enum follows the schema doc — `scored`, `failed`, `debug_exhausted` — snake_case.)
 
+After appending the new leaderboard record, recompute `spend_so_far_usd` as the sum of `cost_usd` across ALL records in `leaderboard.jsonl` (skipping null/missing values) and write the result to `status.json.spend_so_far_usd`. This keeps the cost-ceiling check in `re-select-next` accurate. The sum is recomputed (not incremented) on every update so re-runs and replay produce consistent state.
+
 ### Step 6 — Re-baseline if champion changed
 
 Compare the iteration's metric to the current champion (read `status.json` `champion_metric`). Apply the metric direction from `dossier.md` (higher-is-better or lower-is-better). If beaten:
@@ -106,9 +108,9 @@ Compare the iteration's metric to the current champion (read `status.json` `cham
 
 Read `hypotheses.jsonl` (latest version per id, status=live only). For each live hypothesis, recompute `rank` based on the new narrative state:
 
-- Hypotheses whose `concrete_change` is now ruled out by the iteration → archive (status `archived`, append to `hypotheses_archive.jsonl` with `archive_reason: "contradicted by iter <NNN>"`, and write a versioned record to `hypotheses.jsonl` with `status: archived`).
+- Hypotheses whose `concrete_change` is now ruled out by the iteration → archive (status `archived`, append to `hypotheses_archive.jsonl` with `archive_reason: "contradicted by iter <NNN>", archived_iter: <NNN>`, and write a versioned record to `hypotheses.jsonl` with `status: archived`).
 - Hypotheses whose theme matches a newly-suspected claim → bump their `expected_gain` up one tier (low → med, med → high). Write a new versioned record to `hypotheses.jsonl`.
-- Hypotheses identical (after dedup-rule normalization: lowercase + strip whitespace + strip punctuation) to the just-run hypothesis → archive with `archive_reason: "tested in iter <NNN>"`.
+- Hypotheses identical (after dedup-rule normalization: lowercase + strip whitespace + strip punctuation) to the just-run hypothesis → archive with `archive_reason: "tested in iter <NNN>", archived_iter: <NNN>`.
 
 Write versioned records back to `hypotheses.jsonl` (do not overwrite; append with incremented `version`).
 
@@ -166,6 +168,7 @@ Before returning to the engine, confirm:
 - [ ] `narrative_delta.md` exists in `iterations/<NNN>/` with all 5 required sections.
 - [ ] No record in `hypotheses.jsonl` was overwritten — every change is a new versioned record.
 - [ ] If `selection_note.md` was present, its contents are folded into `narrative_delta.md` under `## Selection note`.
+- [ ] `status.json.spend_so_far_usd` was updated to the sum of `cost_usd` across all `leaderboard.jsonl` records (skipping null).
 
 If any gate fails, do not return to the engine — fix and re-verify.
 
