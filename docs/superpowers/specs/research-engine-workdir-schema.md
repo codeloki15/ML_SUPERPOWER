@@ -162,7 +162,10 @@ Single JSON object — current engine state.
   "next_action": "select_next",
   "spend_so_far_usd": 0.78,
   "cost_ceiling_usd": 5.0,
-  "user_paused": false
+  "user_paused": false,
+  "target_hit_resolved": false,
+  "zoom_out_count": 0,
+  "last_zoom_out_iter": null
 }
 ```
 
@@ -171,6 +174,12 @@ Single JSON object — current engine state.
 `next_action` ∈ `{re_frame_problem, re_mine_literature, re_generate_hypotheses, re_select_next, dispatch_to_subagent, re_update_narrative, re_detect_plateau, re_zoom_out, re_write_up, awaiting_user_response, null}` — `null` means engine is stopped.
 
 `last_event_kind` ∈ `{engine_started, framing_complete, literature_pass_complete, hypotheses_generated, experiment_selected, iteration_complete, plateau_check, zoom_out_complete, awaiting_user_response, stopped}`.
+
+`target_hit_resolved` (bool) — `true` once the user has answered the one-shot "target reached, continue or stop?" question. Owned by `re-detect-plateau`; never reset within a session.
+
+`zoom_out_count` (int) — number of zoom-outs performed in this session. Owned by `re-zoom-out` (incremented when it runs); read by `re-detect-plateau` to decide whether to escalate to `stop_and_write` instead of repeating zoom-out.
+
+`last_zoom_out_iter` (int or null) — `current_iter` at the moment of the most recent zoom-out. Owned by `re-zoom-out`; read by `re-detect-plateau` to compute "iterations since last zoom-out."
 
 ### `iterations/<NNN>/`
 
