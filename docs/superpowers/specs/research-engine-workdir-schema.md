@@ -30,6 +30,8 @@ This file defines the layout of `<workdir>/research_engine/`, where `<workdir>` 
 
 ## File specs
 
+> Examples are illustrative; values across examples are not meant to tell a single consistent story.
+
 ### `dossier.md`
 
 Markdown. Sections (all required):
@@ -110,6 +112,12 @@ JSONL — one record per live hypothesis. Append-only; updates write a new recor
 
 `source` ∈ `{literature, mutation, failure_mining, cross_domain, adversarial}`. `status` ∈ `{live, running, scored, archived}`. `parent_id` is non-null for `mutation` source.
 
+Note: there are TWO distinct `status` enums in this schema — one for hypothesis records (here) and one for leaderboard records (below) — and values from one must NOT be written to the other.
+
+`rank`: integer, 1 = highest priority for selection. Re-ranked by `re-update-narrative` after each iteration.
+
+`expected_gain`, `expected_cost` ∈ `{low, med, high}`.
+
 ### `hypotheses_archive.jsonl`
 
 Same schema as `hypotheses.jsonl`. Records moved here when killed. Adds `archive_reason: <string>` and `archived_iter: <int>`.
@@ -134,7 +142,9 @@ JSONL — one record per executed experiment.
 }
 ```
 
-`status` ∈ `{scored, failed, debug-exhausted}`.
+`status` ∈ `{scored, failed, debug_exhausted}`.
+
+`compute`: free-form string identifying the compute environment (e.g. `local-cpu`, `local-mps`, `local-cuda`, `modal`, `runpod-rtx4090`, `vast-h100`). Set by `dl-detect-env` / `dl-remote-execute`; engine treats this as opaque.
 
 ### `status.json`
 
@@ -158,6 +168,10 @@ Single JSON object — current engine state.
 
 `state` ∈ `{initializing, running, awaiting_user, paused, stopped}`.
 
+`next_action` ∈ `{re_frame_problem, re_mine_literature, re_generate_hypotheses, re_select_next, dispatch_to_subagent, re_update_narrative, re_detect_plateau, re_zoom_out, re_write_up, awaiting_user_response, null}` — `null` means engine is stopped.
+
+`last_event_kind` ∈ `{engine_started, framing_complete, literature_pass_complete, hypotheses_generated, experiment_selected, iteration_complete, plateau_check, zoom_out_complete, awaiting_user_response, stopped}`.
+
 ### `iterations/<NNN>/`
 
 One directory per executed experiment. Filled by the domain sub-agent's existing skills (the engine just provides the directory path).
@@ -166,9 +180,11 @@ One directory per executed experiment. Filled by the domain sub-agent's existing
 - `plan.md` — output of `ml-engineer-plan`.
 - `step_*.py` / `verify_*.py` — outputs of `ml-engineer-write-code` / `ml-engineer-verify`.
 - `results.json` — final metric, written by `ml-engineer-verify`. Required fields: `metric_name`, `metric_value`, `verified` (bool).
-- `narrative_delta.md` — what this iteration added/removed from the narrative. Written by `re-update-narrative`.
+- `narrative_delta.md` — markdown receipt for this iteration. Written by `re-update-narrative`. Required sections: `## Added to "Ruled out"`, `## Added to "Currently suspected"`, `## Removed from "Open questions"`, `## Hypotheses archived`, `## Champion changed?`. Each section may contain `(none)` if empty.
 
 ### `reading/<TS>.md`
+
+`<TS>` format: ISO-8601 UTC with `:` replaced by `-` and seconds dropped, i.e. `YYYY-MM-DDTHH-MMZ` — matching the example `2026-05-07T14-22Z.md`.
 
 One file per `re-mine-literature` pass. Markdown. Required sections:
 
