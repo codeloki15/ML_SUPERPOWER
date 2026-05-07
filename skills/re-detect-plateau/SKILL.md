@@ -31,12 +31,12 @@ Decide whether the engine should continue, zoom out, or stop. The signal is **na
 
 ### Step 2 — Set adaptive K
 
-K is the number of recent iterations to inspect. Compute the average `cost_usd` over the last 5 leaderboard entries (or all entries if fewer than 5). Adaptive rule:
+K is the number of recent iterations to inspect. Compute the average `cost_usd` over the last 5 leaderboard entries (or all entries if fewer than 5). Skip entries where `cost_usd` is null or missing — average over the remainder. If all 5 entries have null cost, treat the average as 0 (cheapest tier). Adaptive rule:
 
 | average iteration cost | K |
 |---|---|
 | ≤ $0.50 | 5 |
-| $0.50 – $2.50 | 4 |
+| > $0.50 and ≤ $2.50 | 4 |
 | > $2.50 | 3 |
 
 Cheap experiments warrant longer plateau windows because each one is low-information; expensive experiments warrant shorter ones because each one carries more signal.
@@ -45,13 +45,15 @@ If fewer than K iterations have completed, return `continue` immediately. Engine
 
 ### Step 3 — Check for target hit
 
-Read the `Target` field in `dossier.md`. If it has a numeric value AND the current `champion_metric` from `status.json` meets or exceeds it (using the metric direction from the dossier), ask the user once (this is the one allowed proactive question after engine start):
+First, read `status.json.target_hit_resolved` — if absent, treat as `false`. If `true`, the user already answered the target-hit question on a prior iteration; skip this step and proceed to Step 4. This skip is non-optional — the engine asks at most once per session.
+
+Otherwise, read the `Target` field in `dossier.md`. If it has a numeric value AND the current `champion_metric` from `status.json` meets or exceeds it (using the metric direction from the dossier), ask the user once (this is the one allowed proactive question after engine start):
 
 > "Target metric reached (champion: <value>, target: <value>). Continue past the target, or stop?"
 
-Wait for response. If continue: proceed to Step 4. If stop: return `stop-and-write`.
+Wait for response. Then, regardless of the answer, write `target_hit_resolved: true` to `status.json` so subsequent plateau checks skip this step. If the user said stop: return `stop-and-write`. If continue: proceed to Step 4.
 
-The engine MUST track that this question was asked (set `status.json.last_event_kind: target_hit_user_continued` or `target_hit_user_stopped`) so subsequent plateau checks do not re-ask.
+(The persistence is on its own dedicated field, NOT on `last_event_kind`, because Step 7 rewrites `last_event_kind` on every plateau check and would clobber any marker stored there.)
 
 ### Step 4 — Compute narrative-plateau signal
 
@@ -86,9 +88,15 @@ Skip iterations whose `metric_value` is `null` (failed runs) when computing min/
 | Yes | No | `continue-but-diversify` (metric is moving; narrative isn't — we're surfing one theme. The engine signals `re-generate-hypotheses` to refresh the live list with extra adversarial weight.) |
 | Yes | Yes | `zoom-out` (stuck in local well; we need a re-frame) |
 
-After the *first* `zoom-out` for a given problem, if a subsequent narrative plateau is detected within 2K iterations of the zoom-out, escalate to `stop-and-write` instead of zooming out again. Two consecutive plateaus are the engine's "I've genuinely run out of moves" signal.
+After the *first* zoom-out for a given problem, the next plateau (Yes,Yes) signal must NOT trigger another zoom-out within 2*K iterations of the prior one — escalate to `stop-and-write` instead. Two consecutive plateaus are the engine's "I've genuinely run out of moves" signal.
 
-To track zoom-out history, read `status.json` for an existing `zoom_out_count` field; if absent, treat as 0. After a zoom-out, the next plateau check increments the counter mentally — the rule is: if `zoom_out_count >= 1` AND the iterations since the last zoom-out is < 2*K, return `stop-and-write` instead of `zoom-out`.
+Persistence: `re-zoom-out` writes `zoom_out_count` (incremented) and `last_zoom_out_iter` to `status.json` when it runs. This skill READS those fields:
+
+- If `zoom_out_count` is absent or 0 → no prior zoom-out; on (Yes,Yes), return `zoom-out`.
+- If `zoom_out_count >= 1` AND `(current_iter - last_zoom_out_iter) < 2*K` → return `stop-and-write` instead of `zoom-out`.
+- Otherwise (≥ 2*K iterations since last zoom-out) → return `zoom-out` (the engine has had enough new evidence to warrant another reframe).
+
+This skill never writes `zoom_out_count` or `last_zoom_out_iter`. Those are owned by `re-zoom-out`.
 
 ### Step 7 — Update status
 
