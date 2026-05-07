@@ -89,13 +89,13 @@ Tie-breaks (in order):
 1. Higher `expected_gain`.
 2. Lower `expected_cost`.
 3. Older `created_iter` (don't let new candidates starve old ones forever).
-4. Random — and log the random tie-break in the iteration's `narrative_delta.md` so it's auditable.
+4. Random — and write a `<workdir>/research_engine/iterations/<NNN>/selection_note.md` recording the tie-break and the candidates considered. `re-update-narrative` will fold this into `narrative_delta.md` after the iteration completes.
 
 ### Step 5 — Mark and emit
 
 - Update the chosen hypothesis's `status` to `running` in `hypotheses.jsonl` (write a new versioned record — append, do not overwrite).
 - Update `status.json` with `next_action: dispatch_to_subagent`, `current_iter: <prev+1>`.
-- Determine the domain route from the dossier's data shape and the hypothesis's `concrete_change`. Routing rules (same as the router prologue in `agents/ml-engineer.md` Step 1):
+- Determine the domain route from the dossier's data shape and the hypothesis's `concrete_change`. Routing rules (same as the existing router rules in `agents/ml-engineer.md`):
   - Image data (jpg/png/tif/bmp/webp/dcm/nii) OR vision model name → `cv-engineer`.
   - Text data with classify/tag/NER/extract task → `nlp-engineer`.
   - LLM/VLM finetune / DPO / GRPO / quantize / serve / merge → `llm-engineer`.
