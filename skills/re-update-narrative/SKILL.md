@@ -32,7 +32,7 @@ Convert the iteration's outcome into narrative deltas. The narrative is the engi
 - `<workdir>/research_engine/status.json` — current champion.
 - `<workdir>/research_engine/hypotheses.jsonl` — for re-ranking.
 
-If `results.json` does not exist or `verified: false`, treat the iteration as a *failed* run; the metric is `null` and the result type is `debug-exhausted` or `failed`. Failed runs are still informative (a failure mode is a claim).
+If `results.json` does not exist or `verified: false`, treat the iteration as a *failed* run; the metric is `null` and the result `status` is `failed` or `debug_exhausted` (snake_case, per the schema doc). Failed runs are still informative (a failure mode is a claim).
 
 ### Step 2 — Compute the four forced fields
 
@@ -40,8 +40,10 @@ This step is the discipline. You must produce *every one* of these four; if any 
 
 1. **What was tested** — restate the hypothesis in one sentence.
 2. **What the result was** — metric value, vs. champion (delta, sign), pass/fail vs. baseline.
-3. **What is now ruled out** — at least one entry, even if "(none — result was inconclusive)". A ruled-out claim must reference a prior `## Currently suspected` or `## Open questions` entry by its text or be a new claim newly demonstrated false.
-4. **What is now newly suspected** — at least one entry. May be "(none — no new suspicion raised)". A newly-suspected claim must come from the iteration's actual evidence, not from speculation.
+3. **What is now ruled out** — list of claims this iteration newly demonstrates false. May be `(none)` ONLY IF field #4 has at least one entry. A ruled-out claim must reference a prior `## Currently suspected` or `## Open questions` entry by its text or be a new claim newly demonstrated false.
+4. **What is now newly suspected** — list of claims this iteration's evidence raises. May be `(none)` ONLY IF field #3 has at least one entry. A newly-suspected claim must come from the iteration's actual evidence, not from speculation.
+
+**Joint constraint:** at least one of #3 or #4 must be non-`(none)`. An iteration that produces no claim in either is a no-op and the engine learned nothing — the iteration is rejected and re-run with a stronger hypothesis change. This is the binding rule that prevents score-only updates.
 
 ### Step 3 — Append to per-iteration log
 
@@ -90,7 +92,14 @@ Append a single record to `leaderboard.jsonl`:
 Compare the iteration's metric to the current champion (read `status.json` `champion_metric`). Apply the metric direction from `dossier.md` (higher-is-better or lower-is-better). If beaten:
 
 - Update `status.json`: `champion_iter: <NNN>`, `champion_metric: <new value>`.
-- Re-create the `champion/` symlink: `rm -f <workdir>/research_engine/champion && ln -s iterations/<NNN> <workdir>/research_engine/champion`.
+- Atomically swap the `champion/` symlink. Use rename-over so a crash mid-swap cannot leave the workdir without a champion link:
+
+  ```bash
+  ln -sfn iterations/<NNN> <workdir>/research_engine/champion.tmp
+  mv -Tf <workdir>/research_engine/champion.tmp <workdir>/research_engine/champion
+  ```
+
+  (The `mv -Tf` is rename-over-symlink: POSIX-atomic on the same filesystem. Do NOT use `rm -f && ln -s` — that has a window during which `champion/` does not exist.)
 - Add a header line to the per-iteration log entry: `**🏆 New champion** — was <prev metric>, now <new metric>.`
 
 ### Step 7 — Re-rank live hypotheses
@@ -164,6 +173,6 @@ If any gate fails, do not return to the engine — fix and re-verify.
 
 - The four forced fields are the contract. Score-only updates are rejected by skill design — every iteration must produce at least one ruled-out OR newly-suspected claim, even if the claim is "the metric did not move because the change was a no-op."
 - A failed iteration is still a narrative event. Write it.
-- Champion update + symlink + leaderboard append are atomic-ish; if any of the three fails, do not partially update — return an error and let the engine surface it.
+- Champion update sequence: write `status.json`, swap the `champion/` symlink via `ln -sfn` + `mv -Tf` (atomic on the same filesystem), append to `leaderboard.jsonl`. If any step fails, do not partially update — return an error and let the engine surface it.
 - Never delete entries from `hypotheses.jsonl`. Archive by appending to `hypotheses_archive.jsonl` and writing a versioned record with `status: archived`.
 - Never delete content from `narrative.md`. Promotions move entries between sections; nothing is silently removed without a corresponding entry in `narrative_delta.md`.
