@@ -34,7 +34,7 @@ The discipline: **change the framing, do not delete the narrative.** The user mi
 
 ### Step 2 — Identify the framing axis to shift
 
-Pick exactly one of the following four axes for this zoom-out. Pick whichever is most likely to unlock signal given the narrative:
+Pick exactly one of the following four axes. The selection rule below is deterministic — given the same narrative state, two invocations must pick the same axis.
 
 1. **metric** — the current primary metric may be the wrong target. Shift to a sibling metric (e.g., RMSE → MAE, accuracy → F1, BLEU → BERTScore) and re-baseline. Does the leaderboard rank the same? If not, the metric was the problem.
 
@@ -44,7 +44,17 @@ Pick exactly one of the following four axes for this zoom-out. Pick whichever is
 
 4. **data_slice** — the problem may be heterogeneous. Examples: stratify by a feature and check whether the champion is uniformly good or only good on a subset. If the latter, the new framing is "solve the bad-subset specifically."
 
-The chosen axis name uses snake_case to match `status.json` enum convention.
+**Selection rule** — apply in order; first matching condition wins:
+
+a. **`data_slice`** — if the narrative's `## Currently suspected` or any prior iteration's `narrative_delta.md` mentions a subset / stratum / cluster / subgroup where the champion underperforms. The narrative is telling you the problem isn't uniform.
+
+b. **`decomposition`** — if `themes_seen` across the last K iterations equals 1 (single-theme tunneling) AND the leaderboard's metric range across those K iterations is within ±5% of the champion. Tunneling on one dimension with no breakthrough suggests a hidden-composite problem that the monolithic framing cannot escape.
+
+c. **`metric`** — if the dossier's `## Open questions` includes a question about the metric, OR `## Already known to fail` mentions metric brittleness, OR the problem statement explicitly names a metric that has a well-known sibling (e.g., RMSE↔MAE, BLEU↔BERTScore, AUC↔PR-AUC).
+
+d. **`unit_of_analysis`** — fallback when none of (a)/(b)/(c) match.
+
+The order above is the tie-break (a > b > c > d). The selected axis name is recorded in snake_case in the narrative append (Step 5) and the skill's output.
 
 ### Step 3 — Re-invoke `re-frame-problem` with the new axis
 
