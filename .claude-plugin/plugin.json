@@ -1,10 +1,10 @@
 {
   "name": "ml-engineer",
-  "version": "0.2.0",
-  "description": "An ML engineer assistant for tabular ML, computer vision, NLP, LLM and VLM finetuning. Plans, writes, executes, verifies, and debugs Python work in an isolated local venv with optional handoff to remote GPU providers (Modal, RunPod, Vast, Lambda, Beam, SSH, Colab).",
+  "version": "0.3.0",
+  "description": "An ML engineer assistant for tabular ML, computer vision, NLP, LLM and VLM finetuning. Includes a continuous research engine that works on problems autonomously — read, hypothesize, select, run, update, decide — until the narrative plateaus. Plans, writes, executes, verifies, and debugs Python work in an isolated local venv with optional handoff to remote GPU providers (Modal, RunPod, Vast, Lambda, Beam, SSH, Colab).",
   "author": {
     "name": "Lokesh"
   },
   "license": "MIT",
-  "keywords": ["ml", "data-science", "python", "venv", "local"]
+  "keywords": ["ml", "data-science", "python", "venv", "local", "research-engine", "autonomous"]
 }

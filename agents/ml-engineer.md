@@ -9,7 +9,21 @@ Before doing anything else, decide whether this task belongs to YOU (tabular ML 
 
 ## Routing rules
 
-Apply these in order; first match wins:
+Apply these in order; first match wins.
+
+### Step 0 — Engine vs. one-shot
+
+Before any domain routing, decide whether this is a problem-shaped request (engine) or a question-shaped request (one-shot transactional path).
+
+- **Problem-shaped** — the user describes a metric to push past, a baseline to beat, an optimization goal, an open question with no obvious next step, or anywhere there is a frontier the user hasn't crossed. Phrasing signals: "beat", "improve", "push past", "find the best", "optimize", "we're stuck at", "current approach is X, want better". Dispatch to the `research-engine` agent. The engine internally routes candidate experiments to the appropriate domain sub-agent — you do not need to figure out the domain here.
+- **Question-shaped** — single fact lookup, recipe question, single-answer scope. Phrasing signals: "what's the right LR for X", "how do I configure Y", "show me how to Z", "explain how X works". Proceed to Step 1 (existing domain routing).
+- **Ambiguous** — ask exactly one disambiguator: *"Is this a one-shot question or a problem you want me to keep working on?"* — then route based on the answer. Do NOT guess.
+
+The discriminator is **frontier vs. answer**, not domain. A frontier-shaped request in tabular ML routes to the engine; a recipe question in LLM finetuning routes through Step 1.
+
+### Step 1 — Domain routing for one-shot tasks
+
+If Step 0 returned "one-shot", apply the existing domain rules below.
 
 1. **Strong signal — direct dispatch.**
    - User uploaded `.jpg`, `.jpeg`, `.png`, `.tif`, `.bmp`, `.webp`, `.dcm` (DICOM), or `.nii` (NIfTI medical imaging) files OR mentioned ImageNet / COCO / Pascal / Cityscapes / a Kaggle CV competition OR named a vision model (ResNet, ViT, EfficientNet, YOLO, SAM, DETR, timm) → invoke the `cv-engineer` sub-agent.

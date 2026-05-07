@@ -182,6 +182,58 @@ The workdir belongs to the user; the plugin never deletes it.
 - No completion claim without fresh verification evidence.
 - No fix without root-cause investigation first.
 
+## Research engine (v0.3.0 — autonomous problem-solver)
+
+The plugin now includes a continuous research engine. For any problem-shaped request — a metric to push past, a baseline to beat, an optimization goal, an open question with no obvious next step — the router silently dispatches to the engine instead of running a one-shot transactional task.
+
+The engine works the way a rigorous human data scientist works: read continuously, maintain a living hypothesis list across five generation sources (literature, mutation of survivors, failure-mining, cross-domain analogy, adversarial wild-card), select the highest-expected-information experiment each round, dispatch it to the appropriate domain sub-agent for execution, update a narrative document (the engine's working memory), re-baseline after every win, and stop only when the narrative stops gaining new entries — not when a counter hits zero.
+
+```
+1. re-frame-problem      → dossier.md, narrative.md skeleton, status.json
+2. re-mine-literature    → reading/<TS>.md, seed claims into narrative
+3. re-generate-hypotheses → ~20 hypotheses across five sources
+4. re-select-next        → pick highest-info-gain × cost⁻¹ experiment + domain route
+5. dispatch to <ml-engineer | cv-engineer | nlp-engineer | llm-engineer>
+6. re-update-narrative   → forced-field updates; re-rank; re-baseline if won
+7. re-detect-plateau     → continue | continue-but-diversify | zoom-out | stop-and-write
+   - zoom-out → re-zoom-out → goto 3 (initial-seed under new framing)
+   - stop-and-write → re-write-up → exit
+```
+
+**Eight engine-only skills** (`re-*`) implement the loop. They only fire from inside the `research-engine` agent — users do not invoke them manually.
+
+| Skill | Role |
+|---|---|
+| `re-frame-problem` | Builds the problem dossier (metric, baseline, data shape, prior knowledge, stop criteria) |
+| `re-mine-literature` | Narrative-driven literature reader; bounded budget (4 queries / 6 fetches per pass) |
+| `re-generate-hypotheses` | Five-source generator with non-zero adversarial / cross-domain quotas |
+| `re-select-next` | Picks next experiment by expected information gain × cost⁻¹; diversity tie-break |
+| `re-update-narrative` | Forced-field discipline (ruled-out + suspected required) prevents score-only updates |
+| `re-detect-plateau` | Reads narrative deltas (NOT the metric); decides continue / zoom-out / stop |
+| `re-zoom-out` | Local-optima escape via metric / unit / decomposition / data-slice shift; never deletes narrative |
+| `re-write-up` | Final report with mandatory "what didn't work" + "honest assessment" sections |
+
+**The engine asks the user only three questions during a session:** (1) at framing time, if the metric is undecidable from the request; (2) at target hit, continue past target or stop; (3) when projected paid-remote spend over the next round would exceed the cost ceiling (default $5/session; configurable). Local CPU/MPS/GPU compute is never gated. Anything else, the engine decides and acts.
+
+**Workdir layout** under `./newton_workdir/<UTC-timestamp>/research_engine/`:
+
+```
+research_engine/
+├── dossier.md                  # problem framing (re-frame-problem)
+├── narrative.md                # the engine's working memory — append-only sections
+├── hypotheses.jsonl            # live hypothesis list (versioned records)
+├── hypotheses_archive.jsonl    # killed / superseded hypotheses
+├── leaderboard.jsonl           # one record per executed experiment
+├── status.json                 # current engine state (resumable)
+├── champion/                   # symlink to current best run
+├── iterations/<NNN>/           # one directory per iteration with the sub-agent's standard outputs
+└── reading/<TS>.md             # one file per literature pass
+```
+
+The workdir survives across Claude Code sessions. Resume is a first-class operation: open a new session in the same directory, the engine reads `status.json` and continues.
+
+See [`docs/superpowers/specs/2026-05-07-research-engine-design.md`](docs/superpowers/specs/2026-05-07-research-engine-design.md) for the full spec, [`docs/superpowers/specs/research-engine-workdir-schema.md`](docs/superpowers/specs/research-engine-workdir-schema.md) for the workdir schema, and [`docs/superpowers/plans/2026-05-08-research-engine-implementation.md`](docs/superpowers/plans/2026-05-08-research-engine-implementation.md) for the implementation plan.
+
 ## Inspiration & credit
 
 The skill structure, "Iron Law" framing, trigger-only descriptions, severity-tagged review pattern, and 4-phase debug methodology were inspired by [obra/superpowers](https://github.com/obra/superpowers) — Jesse Vincent's agentic skills framework. We borrowed the patterns most relevant to a data-science workflow (verification discipline, root-cause debugging, end-of-task review, autonomous orchestration via skill descriptions) and skipped the parts that didn't fit (TDD-as-religion, git-worktree ceremony, branch-finishing flow).
