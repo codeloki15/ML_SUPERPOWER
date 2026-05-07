@@ -181,6 +181,10 @@ Single JSON object — current engine state.
 
 `last_zoom_out_iter` (int or null) — `current_iter` at the moment of the most recent zoom-out. Owned by `re-zoom-out`; read by `re-detect-plateau` to compute "iterations since last zoom-out."
 
+`reframe_axis` (used by `re-zoom-out` when re-invoking `re-frame-problem`, not stored in `status.json`) ∈ `{metric, unit_of_analysis, decomposition, data_slice}` — the axis along which the engine re-frames the problem on a zoom-out. See `re-zoom-out` Step 2 for the deterministic selection rule.
+
+`last_plateau_decision` (string, optional debug field) — written by `re-detect-plateau` alongside `next_action`. Records the original decision string for traceability: ∈ `{continue, continue_but_diversify, zoom_out, stop_and_write}`.
+
 ### `iterations/<NNN>/`
 
 One directory per executed experiment. Filled by the domain sub-agent's existing skills (the engine just provides the directory path).
